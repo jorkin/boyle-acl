@@ -4,10 +4,10 @@
 <%
 '// --------------------------------------------------------------------------- //
 '// Project Name		: Boyle.ACL												//
-'// Program Name		: class_secrity.asp										//
-'// Copyright Notice	: COPYRIGHT (C) 2011 BY BOYLE.							//
-'// Creation Date		: 2011/08/02											//
-'// Version				: 3.1.0.0802											//
+'// Author				: Boyle(boyle7[at]qq.com)								//
+'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
+'// Create Date			: 2011/08/02											//
+'// Version				: 4.0.121028											//
 '//																				//
 '// Date       By			 Description										//
 '// ---------- ------------- -------------------------------------------------- //
