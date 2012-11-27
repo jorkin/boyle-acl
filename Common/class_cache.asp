@@ -2,8 +2,8 @@
 '// --------------------------------------------------------------------------- //
 '// Project Name		: Boyle.ACL												//
 '// Author				: Boyle(boyle7[at]qq.com)								//
-'// Copyright Notice	: COPYRIGHT (C) 2006-2012 BY BOYLE.						//
-'// Create Date			: 2012/10/29											//
+'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
+'// Create Date			: 2011/08/02											//
 '// Version				: 4.0.121028											//
 '//																				//
 '// Date       By			 Description										//
@@ -12,7 +12,7 @@
 '// --------------------------------------------------------------------------- //
 
 '// --------------------------------------------------------------------------- //
-'// 作者：Coldstone(coldstone[at]qq.com)											//
+'// 作者：Coldstone(coldstone[at]qq.com)										//
 '// 网址：http://easp.lengshi.com/												//
 '// --------------------------------------------------------------------------- //
 

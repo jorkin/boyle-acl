@@ -3,7 +3,7 @@
 '// --------------------------------------------------------------------------- //
 '// Project Name		: Boyle.ACL												//
 '// Author				: Boyle(boyle7[at]qq.com)								//
-'// Copyright Notice	: COPYRIGHT (C) 2006-2012 BY BOYLE.						//
+'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
 '// Create Date			: 2011/08/02											//
 '// Version				: 4.0.121028											//
 '//																				//
