@@ -1,13 +1,13 @@
-<!--#include file="./Common/class_io.asp"-->
-<!--#include file="./Common/class_text.asp"-->
-<!--#include file="./Common/class_json.asp"-->
-<!--#include file="./Common/class_data.asp"-->
-<!--#include file="./Common/class_array.asp"-->
-<!--#include file="./Common/class_cache.asp"-->
-<!--#include file="./Common/class_error.asp"-->
-<!--#include file="./Common/class_upload.asp"-->
-<!--#include file="./Common/class_security.asp"-->
-<!--#include file="./Common/class_template.asp"-->
+<!--#include file="./IO.class.asp"-->
+<!--#include file="./Db.class.asp"-->
+<!--#include file="./JSON.class.asp"-->
+<!--#include file="./Text.class.asp"-->
+<!--#include file="./Array.class.asp"-->
+<!--#include file="./Cache.class.asp"-->
+<!--#include file="./Error.class.asp"-->
+<!--#include file="./Upload.class.asp"-->
+<!--#include file="./Security.class.asp"-->
+<!--#include file="./Template.class.asp"-->
 
 <%
 '// --------------------------------------------------------------------------- //
@@ -123,8 +123,8 @@ Class Boyle
 	End Property
 	
 	'// 功能说明：返回页面执行所用的时间
-	Public Function [End](ByVal blParam)
-		[End] = FormatNumber(Timer() - blParam, 6, -1)
+	Public Function [End]()
+		[End] = FormatNumber(Timer() - vbTIME, 6, -1)
 	End Function
 	
 	'// 功能说明：获取地址栏信息
@@ -242,8 +242,9 @@ Class Boyle
 	End Function
 	
 	'// 初始化系统
-	Public Sub Run(ByVal blParam)
-		Dim C: Set C = Text.ToHashTable(blParam)
+	Public Sub Run()
+		Dim C: Set C = Array.New
+		C.Hash = APP_PARAM
 		
 		'// 配置数据库信息，系统默认使用ACCESS数据库
 		If Not Text.IsEmptyAndNull(C("DB.SOURCE")) Then
@@ -262,11 +263,22 @@ Class Boyle
 		End If
 		
 		'// 配置模板信息
-		If Not Text.IsEmptyAndNull(C("TPL.PATH")) Then Template.Root = C("TPL.PATH")		
+		If Not Text.IsEmptyAndNull(C("TPL.PATH")) Then Template.Root = C("TPL.PATH")
+		Set C = Nothing
 	End Sub
 	
 End Class
 
+Private vbTIME: vbTIME = Timer()
 '// 实例化类，不可更改变量名称
 Public System: Set System = New Boyle
+
+'// 当连接用户断开后自动释放资源
+If Not Response.IsClientConnected Then Terminate()
+
+'// 释放数据源和基类
+Private Sub Terminate()
+	System.Data.DisConnect()
+	Set System = Nothing
+End Sub
 %>

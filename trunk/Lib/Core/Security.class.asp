@@ -1,6 +1,6 @@
-<!--#include file="./class_security_aes.asp"-->
-<!--#include file="./class_security_md5.asp"-->
-<!--#include file="./class_security_sha256.asp"-->
+<!--#include file="./Security.AES.class.asp"-->
+<!--#include file="./Security.MD5.class.asp"-->
+<!--#include file="./Security.SHA256.class.asp"-->
 <%
 '// --------------------------------------------------------------------------- //
 '// Project Name		: Boyle.ACL												//

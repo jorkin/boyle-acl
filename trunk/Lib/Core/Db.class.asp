@@ -1,4 +1,4 @@
-<!--#include file="./class_data_page.asp"-->
+<!--#include file="./Db.Page.class.asp"-->
 <%
 '// --------------------------------------------------------------------------- //
 '// Project Name		: Boyle.ACL												//
@@ -93,8 +93,8 @@ Class Cls_Data
 	
 	'// 释放记录集(支持同时释放多个记录集)
 	Public Sub DisRecordset(ByVal blObject)
-		Dim I: If IsArray(blObject) Then
-			For I = 0 To UBound(blObject)
+		If IsArray(blObject) Then
+			Dim I: For I = 0 To UBound(blObject)
 				If IsObject(blObject(I)) And blObject(I).State = 1 Then blObject(I).Close: Set blObject(I) = Nothing
 			Next
 		Else

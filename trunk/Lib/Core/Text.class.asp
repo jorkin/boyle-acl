@@ -370,8 +370,8 @@ Class Cls_Text
 	
 	'/**
 	' * @功能说明: 对指定的字符串执行正则表达式搜索
-	' * @参数说明: - blExpression [string] : 正则表达式
-	' *  		   - blParam1 [string] : 字符串
+	' * @参数说明: - blParam1 [string] : 字符串
+	' *  		   - blExpression [string] : 正则表达式
 	' * @返回值:   - [matches] : Matches集合
 	' */	
 	Public Function MatchX(ByVal blParam1, ByVal blExpression)
@@ -395,7 +395,7 @@ Class Cls_Text
 	'/**
 	' * @功能说明: 用数字"0"，在目标数值前进行填充位数
 	' * @参数说明: - blParam1 [string]: 需填充字符
-	' * @参数说明: - blParam2 [int]: 补充的长度
+	' *			   - blParam2 [int]: 补充的长度
 	' * @返回值:   - [string] : 字符串
 	' */
 	Public Function AppendZero(ByVal blParam1, ByVal blParam2)
@@ -576,7 +576,7 @@ Class Cls_Text
 			End If
 		Next
 		JSEncode = T
-	End Function	
+	End Function
 
 	'/**
 	' * @功能说明: 清除字符串中的HTML代码
@@ -590,6 +590,18 @@ Class Cls_Text
 			blParam = Replace(blParam, ">", "&gt;")
 			RemoveHtml = Trim(blParam)
 		Else RemoveHtml = "" End If
+	End Function
+
+	'/**
+	' * @功能说明: 清除字符串中所有空格换行
+	' * @参数说明: - blParam [string]: 源字符串
+	' * @返回值:   - [string] : 字符串
+	' */
+	Public Function RemoveSpace(ByVal blParam)
+		If Not Me.IsEmptyAndNull(blParam) Then
+			blParam = ReplaceX("[\n\s*\r|]", blParam, "")
+			RemoveSpace = Trim(blParam)
+		Else RemoveSpace = "" End If
 	End Function
 	
 	'/**
