@@ -1,1170 +1,1125 @@
 <%
-'// --------------------------------------------------------------------------- //
-'// Project Name		: Boyle.ACL												//
-'// Author				: Boyle(boyle7[at]qq.com)								//
-'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
-'// Create Date			: 2011/08/02											//
-'// Version				: 4.0.121028											//
-'//																				//
-'// Date       By			 Description										//
-'// ---------- ------------- -------------------------------------------------- //
-'// 2011/08/02 Boyle		 系统模板操作类										//
-'// --------------------------------------------------------------------------- //
-
-'// --------------------------------------------------------------------------- //
-'// 作者：Taihom(taihom@163.com)(Taihom.Template.class v3.0)					//
-'// 网址：http://www.cnblogs.com/taihom/										//
-'// --------------------------------------------------------------------------- //
-
 Class Cls_Template
-	'// 声明私有变量
-	Private strCharset, strSITEROOT, strTemplate_dir, strTemplate_path, strCache_dir
-	Private strTemplate, strCachePage, strCachePageName
-	Private intCacheflag, intAbsPath, intCachePageTimeout, intCreateCachePage, intCacheTplTime
-	Private DIC_BLOCK_ATTR, DIC_BLOCK_LOOP_VAL, DIC_BLOCK_IF, DIC_BLOCK_LOOP, DIC_BLOCK_LOOP_LIST, DIC_BLOCK_LOOP_ATTR
-	Private PREFIX, RS_FIELD, OPS
-	
-	'// 常用对象
-	Private FSO, XMLDOM, EX
-	
-	'// 类初始化
-	Private Sub Class_Initialize()		
+	Private objFSO, objSTREAM, objEXP, tplXML, adoConn
+	Private strRootPath, strCharset, strTagHead, strRootXMLNode, strBlockDataAtr
+	Private intDebugModule
+	Private strTemplatePath,  strTemplateFilePath
+	Private strTemplateHtml, strResultHtml
+	Private dicLabel
+	Private strDateDiffTimeInterval, strTemplateCacheName, strTemplatePagePath
+	Private strTemplateCachePath, intTemplateCacheType, intTemplateCacheTime
+	Private strAppCacheName, strFileCachePath
+
+	'//类初始化
+	Private Sub Class_Initialize()
+
 		'// 全局默认变量
-		strCharset          = System.Charset
-		strSITEROOT         = ""'Server.MapPath("./")
-		intCacheflag        = 0 	 '是否需要缓存 0=不缓存,1=文件缓存,2=内存
-		strCache_dir        = ""	 '后面需要带/
-		strTemplate_dir     = ""	 '后面需要带/
-		intAbsPath          = 1 	 '输出结果是否使用绝对路径 (0不用,1用)
-		intCachePageTimeout = 0 	 '整个页面的缓存超时
-		intCacheTplTime     = 121028 '模板缓存时间
+		strCharset      = System.Charset 	'编码设置
+		strTagHead      = "$"				'定义模板标签头
+		strTemplatePath = "" 				'模板存放目录
+		strRootXMLNode  = "//template"  	'模板根节点名称
+		strBlockDataAtr = "name"        	'块赋值辅助的属性
+		intDebugModule  = 0             	'调试模式，默认是0
 		
-		'// 以下信息请不要更改除非你对本类的思路跟实现比较了解否则请不要更改
-		PREFIX = "GLOBAL_BOYLE_TEMPLATE"
-		'// 默认支持的运算符
-		OPS = "==|<=|&lt;=|>=|&gt;=|>|&gt;|<|&lt;|!=|<>|&lt;&gt;|%"
+		strDateDiffTimeInterval = "s"       '表示相隔时间的类型：d日 h时 n分钟 s秒
+		intTemplateCacheType    = 0         '缓存类型
+		intTemplateCacheTime    = 10        '缓存时间
+		strTemplateCachePath    = "" '缓存目录
 		
-		'// 常用对象
-		Set DIC_BLOCK_ATTR      = Dicary()	'加入的名值对象
-		Set DIC_BLOCK_IF        = Dicary()	'if块的对象
-		Set DIC_BLOCK_LOOP      = Dicary()	'loop块的对象
-		Set DIC_BLOCK_LOOP_VAL  = Dicary()	'循环体内容的值
-		Set DIC_BLOCK_LOOP_ATTR = Dicary()	'块属性输出
-		Set DIC_BLOCK_LOOP_LIST = Dicary()	'块输出对象
-		Set RS_FIELD            = Dicary()	'应用到loop中的字段名
-
-		Set XMLDOM = Server.CreateObject("MicroSoft.XMLDom")
-		XMLDOM.async = False
+		'设置使用到的对象
+		Set objFSO = Server.CreateObject("Scripting.FileSystemObject")
+		Set objEXP = New RegExp: objEXP.Global = True: objEXP.IgnoreCase = True
+		Set objSTREAM = adodbStream()'流对象
+		Set tplXML = xmlDom(Right(strRootXMLNode,Len(strRootXMLNode)-2))
 		
-		Set FSO = System.IO.FSO
-		Set EX = New RegExp
-		EX.Global = True
-		EX.IgnoreCase = True
+		'使用到的字典对象
+		Set dicLabel  = Dicary()
 	End Sub
 	
-	'// 类退出
+	'//类退出
 	Private Sub Class_Terminate()
-		'// 释放字典
-		Set DIC_BLOCK_ATTR      = Nothing
-		Set DIC_BLOCK_IF        = Nothing
-		Set DIC_BLOCK_LOOP      = Nothing
-		Set DIC_BLOCK_LOOP_VAL  = Nothing
-		Set DIC_BLOCK_LOOP_ATTR = Nothing
-		Set DIC_BLOCK_LOOP_LIST = Nothing
-		Set RS_FIELD            = Nothing
-		'// 释放对象
-		Set XMLDOM = Nothing  
-		Set EX     = Nothing
-		Set FSO    = Nothing
+		'注销对象
+		Set objFSO    = Nothing
+		Set objEXP    = Nothing
+		Set objSTREAM = Nothing
+		Set tplXML    = Nothing
+		Set dicLabel  = Nothing
+		If IsObject(adoConn) Then Set adoConn = Nothing
 	End Sub
+	
+	'//设置站点根目录路径
+	Public Property Let setRootPath(ByVal strVal)
+		strRootPath = strVal
+	End Property
+	
+	'//设置使用字符编码
+	Public Property Let setCharset(ByVal strVal)
+		strCharset = strVal
+	End Property
+	
+	'//设置单标签头
+	Public Property Let setTagHead(ByVal strVal)
+		strTagHead = LCase(Trim(strVal))
+	End Property
 
-	'// 字典对象
-	Private Function Dicary()
-		Set Dicary = Server.CreateObject("Scripting.Dictionary")
-	End Function
+	'//设置模板存放路径
+	Public Property Let setTemplatePath(ByVal strVal)
+		strTemplatePath = strVal
+	End Property
+	Public Property Let Root(ByVal strVal)
+		strTemplatePath = strVal
+	End Property
+	Public Property Get Root()
+		Root = strTemplatePath
+	End Property
 	
-	'// 循环嵌套include(从代码解析,来源路径)
-	Private Function LoadInclude(ByVal html, ByVal fromPath)
-		Dim incpath
-		Dim Match, Matches
-		'// include优先
-		EX.Pattern = "{include\(['""]*(.+?)['""]*\)}"
-		Set Matches = EX.Execute(html)
-		For Each Match in Matches
-			'incpath = Replace(strSITEROOT & strTemplate_dir & Match.SubMatches(0), "/", "\")
-			incpath = strSITEROOT & strTemplate_dir & Match.SubMatches(0)
-			If LCase(fromPath) <> LCase(incpath) Then
-				html = Replace(html, Match.Value, LoadInclude(LoadFile(incpath, strCharset), incpath))
-			Else html = Replace(html, Match.Value,"") End If
-		Next
-		Set Matches = Nothing
-		LoadInclude = html
-	End Function
-	
-	'// 读取模板文件
-	Private Function LoadFile(ByVal strFilePath, ByVal strCharset)
-		If System.IO.ExistsFile(strFilePath) Then LoadFile = System.IO.Read(strFilePath) _
-		Else LoadFile = "模板"&strFilePath&"加载失败"
-	End Function
-	
-	'// 加载模板文件
-	Private Function LoadTemplate()
-		Dim html, tplpath: tplpath = strSITEROOT & strTemplate_dir & strTemplate_path
-		'// 加载模板，如果为空，则直接读取内存，否则读取模板文件
-		If Len(strTemplate_path) = 0 Then html = strTemplate _
-		Else html = LoadFile(tplpath, strCharset)
-		'// include优先:LoadInclude(代码,来源路径)
-		html = LoadInclude(html, tplpath)
+	'//设置模板文件路径
+	Public Property Let setTemplateFile(ByVal strVal)
+		strTemplatePagePath = strVal
+		strTemplateFilePath = getMapPath(strRootPath & strTemplatePath & strTemplatePagePath)
 		
-		'// 把模板内容存储到临时变量，是否替换模板内容中的相对路径为绝对路径
-		If Len(html) Then strTemplate = System.Text.IIF(CBool(intAbsPath), AbsPath(html), html)		
-	End Function
-	
-	'// 保存文件
-	Private Function SaveToFile(ByVal strContent, ByVal strFilePath, ByVal strCharset)
-		SaveToFile = System.IO.Save(strFilePath, strContent)
-	End Function
-	
-	'// FSO自动生成文件夹路径
-	Private Function AutoCreateFolder(ByVal strPath)
-		AutoCreateFolder = System.IO.CreateFolder(strPath)
-	End Function
-	
-	'// 输出结果输出模板的绝对路径
-	Private Function AbsPath(ByVal strCode)
-		Dim html: html = strCode
-		Dim Matches, Match
-		EX.Pattern = "(href|src)=(['""|])(?!(\/|\{|\(|\.\/|http:\/\/|https:\/\/|javascript:|#))(.+?)(['""|])"
-		Set Matches = EX.Execute(html)
-		For Each Match in Matches
-			html = Replace( html, Match.Value, Replace(Match.value, Match.SubMatches(3), RelPath(Match.SubMatches(3))) )
-		Next
-		AbsPath = html
-		'AbsPath = EX.Replace(html, "$1=$2" & Replace(strTemplate_dir,"\","/") & "$3$4$5") 
-	End Function
+		'文件缓存路径
+		strFileCachePath = strRootPath & strTemplateCachePath & strTemplatePath 
+		strFileCachePath = getMapPath(expReplace(strFileCachePath,"(\.|\\|\/)+","/"))
+		call autoCreateFolder(strFileCachePath)'自动生成路径
+		strFileCachePath = expReplace(strFileCachePath &"/"& strTemplateCacheName,"(\.|\\|\/)+","/") & "_" & strTemplatePagePath
 		
-	'// 替换相对路径，根据模板路径把../逐层替换到对应的目录
-	Private Function RelPath(ByVal strPath)
-		Dim src, spath
-		EX.Pattern = "^(\.\.\/)+"
-		Dim Matches: Set Matches = EX.Execute(strPath)
-		If Matches.Count = 0 Then RelPath = Replace(strTemplate_dir, "\", "/") & strPath: Exit Function
-		'// 模板的全路径
-		spath = Split(Replace(strTemplate_dir & strTemplate_path, "\", "/"), "/")
-		EX.Pattern = "(\.\.\/)" '//看有多少个../
-		Dim I: For I = 0 To Ubound(spath) - 1 - EX.Execute(Matches(0).Value).Count
-			src = src & spath(I) & "/"
-		Next
-		'// 把../替换成正确的目录
-		RelPath = Replace(strPath, Matches(0).Value, src)
-	End Function
-
-	'// 标签属性的支持，如果需要做自己的属性支持，在这里扩展
-	Private Function TagProperty(ByVal strTag, ByVal tagVal, ByVal strVal)
-		Dim return: return = strVal
-		tagVal = Trim(tagVal)
-		Select Case (LCase(Trim(strTag)))
-			'// 截取长度的支持
-			Case "len", "length":
-				Dim tagVals: tagVals = System.Text.Separate(tagVal)
-				If Int(tagVals(0)) > 0 Then return = System.Text.Cut(return, tagVals(0)&":"&tagVals(1))
-			'// 返回值{@var return="len"}
-			Case "return":
-				Select Case (LCase(Trim(tagVal)))
-					Case "len", "length":'// 返回变量的字符串长度
-						return = System.Text.Length(return)
-					Case "urlencode":'// 返回URLEncode
-						return = Server.URLEncode(return)
-					Case "clearhtml":'// 清除html格式
-						return = System.Text.RemoveHtml(return)
-					Case "clearspace":'// 清除所有空格空行
-						return = System.Text.RemoveSpace(return)
-					Case "clearformat":'// 清除所有格式
-						return = System.Text.RemoveSpace(System.Text.RemoveHtml(return))
-				End Select
-			'// 日期格式化
-			Case "dateformat":
-				return = DateFormat(return, tagVal)		
+		'内存缓存的名称
+		strAppCacheName  = strTemplateCacheName & "_" & intTemplateCacheTime & "_" & intTemplateCacheType & "_" & strTemplatePagePath
+		
+		'设置路径后立即加载模板
+		call loadCacheTemplate()
+	End Property
+	Public Property Let File(ByVal strVal)
+		setTemplateFile =  strVal
+	End Property
+	
+	'参数1: 缓存的名字,每个页面不能相同
+	'参数2: 0=都不缓存,1=内存缓存,2=文件缓存(缓存会缓存数据跟模板,开启缓存必须要有一个缓存名字)
+	'参数3: 缓存时间，单位是默认是秒
+	Public Property Let setCache(ByVal strVal)
+		Dim arr : arr = expSplit(strVal,"\s*,\s*")
+		Select Case Ubound(arr,1)
+		Case 0
+			strTemplateCacheName = arr(0)
+		Case 1
+			strTemplateCacheName = arr(0)
+			intTemplateCacheType = CInt(arr(1))
+		Case 2
+			strTemplateCacheName = arr(0)
+			intTemplateCacheType = CInt(arr(1))
+			intTemplateCacheTime = CInt(arr(2))
+		Case 3
+			strTemplateCacheName = arr(0)
+			intTemplateCacheType = CInt(arr(1))
+			intTemplateCacheTime = CInt(arr(2))
+			strTemplateCachePath = arr(3)
 		End Select
-		TagProperty = return
-	End Function
+		If intTemplateCacheTime <= 0 Then
+			intTemplateCacheType = 0
+		End If
+	End Property
 
-	'// 日期格式化
-	Public Property Get DateFormat(ByVal strDate, ByVal strFormat)
-		Dim return: return = strFormat
-		If Not IsDate(strDate) Then DateFormat = strDate : Exit Property		
+	'//设置节点属性
+	Public Property Let setAttr(ByVal strPath,ByVal strVal)
+		setLabelAttr LCase(strPath),strVal
+	End Property
+	
+	'//设置数据库连接
+	Public Property Let Conn(ByVal objVal)
+		On Error Resume Next
+		Set adoConn = objVal
+		If adoConn.State = 0 Then adoConn.Open()
+		If Err.Number <> 0 Then
+			Err.Clear : Set adoConn = Nothing
+			call errRaise("数据库打开出错,请检查数据库连接")
+		End If
+	End Property
+	
+	'赋值
+	Public Property Let d(ByVal strTag, ByVal strVal)
+		Dim i,ary : ary = expSplit(strTag,"\s*,\s*")
+		For i = 0 To Ubound(ary)'多标签赋值
+			strTag = LCase(ary(i))
+			If strTag = strTagHead Then
+				Select Case TypeName(strVal)
+				Case "Recordset"'记录集
+					If strVal.State And Not strVal.Eof Then
+						Set dicLabel = rsToDic(strVal)
+					End If
+				Case "Dictionary"
+					Set dicLabel = strVal
+				Case "Variant()"'如果传递的是数组
+					If Ubound(strVal) = 1 Then
+						Select Case TypeName(strVal(0))
+							Case "Recordset"
+								If strVal(0).State And Not strVal(0).eof Then
+									Set dicLabel = rsToDic(strVal(0))
+								End If
+							Case "Variant()"
+								Set dicLabel = rsToDic(strVal(0))
+						End Select
+						Dim aryField : aryField = expSplit(strVal(1),"\s*,\s*")'字段序列
+						If TypeName(aryField)="Variant()" Then Set dicLabel = redimField(dicLabel,aryField)'重命名字段
+					End If
+				End Select
+			Else'普通赋值,支持字典，普通数据(字段值、字符串、数字等)
+				Select Case TypeName(strVal)
+				Case "Dictionary","Recordset"
+					Set dicLabel(strTag) = strVal
+				Case Else
+					dicLabel(strTag) = strVal
+				End Select
+			End If
+		Next
+	End Property
+	Public Property Let Assign(ByVal strTag,ByVal strVal)
+		d(strTag) = strVal
+	End Property
+
+	'生成静态页面(路径,页面名称)
+	Public Property Let create(ByVal param)
+		Dim strFilePath,strContents
+		If TypeName(param) = "Variant()" Then'传递数组
+			Select Case Ubound(param)
+			Case 0'Array(createpath+pagename)
+				strFilePath = param(0)
+				strContents = getHtml
+			Case 1'Array(createpath+pagename,content)
+				strFilePath = param(0)
+				strContents = param(1)
+			Case Else'Array(createpath+pagename,content,charset)
+				strFilePath = param(0)
+				strContents = param(1)
+				strCharset  = param(2)
+			End Select
+		Else '文件路径+文件名
+			strFilePath = param
+			strContents = getHtml
+		End If
+		Call saveFile(getMapPath(strFilePath) , strContents , strCharset)
+	End Property
+	
+	'//获取属性
+	Public Property Get getAttr(ByVal strPath)
+		Dim i,ary,node
+		ary = selectLabelNode(LCase(strPath))'选择标签节点
+		If IsArray(ary) = False Then Exit Property
+		
+		Select Case LCase(ary(3))
+		Case ":body"
+			Set node = tplXML.selectNodes(ary(4) & "/body")
+		Case ":empty",":null",":eof"
+			Set node = tplXML.selectNodes(ary(4) & "/null")
+		Case ":html"
+			Set node = tplXML.selectNodes(ary(4) & "/html")
+		Case Else
+			If Len(ary(2)) Then
+				Set node = tplXML.selectNodes(ary(4)&"/@"&ary(2))
+			Else'如果没有属性路径就返回节点的所有属性
+				Set node = tplXML.selectNodes(ary(4))
+				Redim tagAttr(node.Length)
+				For i = 0 to node.Length - 1
+					Set tagAttr(i) = getBlockAttr(node(i))
+				Next
+				getAttr = tagAttr
+				Exit Property
+			End If
+		End Select
+		
+		If IsObject(node) Then
+			If node.Length Then 
+				Redim tagAttr(node.Length)
+				For i = 0 to node.Length - 1
+					tagAttr(i) = node(i).nodeTypedValue
+				Next
+
+				'如果只有一个结果，就返回这个结果
+				If Ubound(tagAttr) = 1 Then
+					getAttr = tagAttr(0)
+				Else'如果有多个结果就返回数组
+					getAttr = tagAttr
+				End If
+			End If
+			Set node = Nothing
+		End If
+	End Property
+	
+	'获得标签所有的值
+	Public Property Get getLabelValues(ByVal strVal)
+		If LCase(strVal) = LCase(strTagHead) Then'如果返回所有值对象
+			Set getLabelValues = dicLabel
+		Else
+			If IsObject(dicLabel(strVal)) Then
+				Set getLabelValues = dicLabel(strVal)
+			Else
+				getLabelValues = dicLabel(strVal)
+			End If
+		End If
+	End Property
+	
+	'//输出部分
+	Public Property Get getHtml
+		Select Case intTemplateCacheType
+		Case 3'结果内存缓存
+			Dim cacheName : cacheName = strAppCacheName & "getHtml"
+			If cacheTimeOut(cacheName,1,intTemplateCacheTime) = 0 Then
+				strResultHtml = getCacheValue(cacheName,1)
+			Else
+				call analysisTemplate()
+				setCacheValue cacheName,strResultHtml,1
+			End If
+		Case 4'结果文件缓存
+			'检查文件是否存在:缓存不存在=-1,超时>0,没有超时=0
+			If cacheTimeOut(strFileCachePath & ".html",2,intTemplateCacheTime) = 0 Then
+				strResultHtml = readFile(getMapPath(strFileCachePath & ".html") , strCharset)
+			Else
+				call analysisTemplate()
+				setCacheValue getMapPath(strFileCachePath & ".html"),strResultHtml,2
+			End If
+		Case Else
+			call analysisTemplate()
+		End Select
+		
+		'返回执行时间
+		strResultHtml = expReplace(strResultHtml,"\{runtime\s*\/?\}|(\<\!--runtime--\>)(.*?)\1" , "<"&"!--runtime-->"&System.End&"<"&"!--runtime-->" )
+		
+		getHtml = strResultHtml
+	End Property
+	
+	'//输出模板部分
+	Public Property Get display
+		Response.Write(getHtml)
+	End Property
+	
+	'//日期格式化
+	Public Property Get dateFormat(ByVal strDate,ByVal strFormat)
+		Dim return : return = strFormat
+		Dim ccDate
+		If IsDate(strDate)=False Then dateFormat = strDate : Exit Property
+		
 		'下面开始进行日期的转换
-		Dim ccDate: ccDate = FormatDateTime(strDate, vbGeneralDate )
+		ccDate = FormatDateTime(strDate, vbGeneralDate )
 		'显示方式
 		Select Case(strFormat)
 			Case "0" : 'vbGeneralDate 0 显示日期和/或时间。如果有日期部分，则将该部分显示为短日期格式。如果有时间部分，则将该部分显示为长时间格式。如果都存在，则显示所有部分。
-				return = FormatDateTime(strDate, 0 )
+			return = FormatDateTime(strDate, 0 )
 			Case "1" : 'vbLongDate 1 使用计算机区域设置中指定的长日期格式显示日期
-				return = FormatDateTime(strDate, 1 )
+			return = FormatDateTime(strDate, 1 )
 			Case "2" : 'vbShortDate 2 使用计算机区域设置中指定的短日期格式显示日期 
-				return = FormatDateTime(strDate, 2 )
+			return = FormatDateTime(strDate, 2 )
 			Case "3" : 'vbLongTime 3 使用计算机区域设置中指定的时间格式显示时间
-				return = FormatDateTime(strDate, 3 )
+			return = FormatDateTime(strDate, 3 )
 			Case "4" : 'vbShortTime 4 使用 24 小时格式 (hh:mm) 显示时间
-				return = FormatDateTime(strDate, 4 )
+			return = FormatDateTime(strDate, 4 )
 			Case Else
-				With EX
-					'年月日是小写，时分秒是大写
-					.IgnoreCase = False
-					.Global = True
-					.Pattern = "yyyy" : return = .Replace(return, Year(ccDate))
-					.Pattern = "yy"   : return = .Replace(return, Right(Year(ccDate), 2))
-					.Pattern = "mm"   : return = .Replace(return, Right("0" & Month(ccDate), 2))
-					.Pattern = "m"    : return = .Replace(return, Month(ccDate))
-					.Pattern = "dd"   : return = .Replace(return, Right("0" & Day(ccDate), 2))
-					.Pattern = "d"    : return = .Replace(return, Day(ccDate))
-					.Pattern = "HH"   : return = .Replace(return, Right("0" & Hour(ccDate), 2))
-					.Pattern = "H"    : return = .Replace(return, Hour(ccDate))
-					.Pattern = "MM"   : return = .Replace(return, Right("0" & Minute(ccDate), 2))
-					.Pattern = "M"    : return = .Replace(return, Minute(ccDate))
-					.Pattern = "SS"   : return = .Replace(return, Right("0" & Second(ccDate), 2))
-					.Pattern = "S"    : return = .Replace(return, Second(ccDate))
-					.Pattern = "w|W"  : return = .Replace(return, Right(weekdayname(weekday(ccDate)), 1))
-					.IgnoreCase = True
-				End With
+			With objEXP
+				'年月日是小写，时分秒是大写
+				.IgnoreCase = False
+				.Global = True
+				.Pattern = "yyyy" : return = .Replace(return, Year(ccDate))
+				.Pattern = "yy"   : return = .Replace(return, Right(Year(ccDate),2))
+				.Pattern = "mm"   : return = .Replace(return, Right("0" & Month(ccDate),2))
+				.Pattern = "m"    : return = .Replace(return, Month(ccDate))
+				.Pattern = "dd"   : return = .Replace(return, Right("0" & Day(ccDate),2))
+				.Pattern = "d"    : return = .Replace(return, Day(ccDate))
+				.Pattern = "HH"   : return = .Replace(return, Right("0" & Hour(ccDate),2))
+				.Pattern = "H"    : return = .Replace(return, Hour(ccDate))
+				.Pattern = "MM"   : return = .Replace(return, Right("0" & Minute(ccDate),2))
+				.Pattern = "M"    : return = .Replace(return, Minute(ccDate))
+				.Pattern = "SS"   : return = .Replace(return, Right("0" & Second(ccDate),2))
+				.Pattern = "S"    : return = .Replace(return, Second(ccDate))
+				.Pattern = "w|W"  : return = .Replace(return, Right(weekdayname(weekday(ccDate)),1))
+				.IgnoreCase = True
+			End With
 		End Select
 		
-		DateFormat = return
+		dateFormat = return
 	End Property
-	
-	'////////////////////////////////////////////////模板输出部分'////////////////////////////////////////////////
 
-	'// 判断输出，返回真或者假
-	Private Function ifOperator(ByVal strOpera, ByVal strVar, ByVal strValue)
-		On Error Resume Next
-		Dim return : return = False		
-		strVar = Trim(strVar): strValue = Trim(strValue)		
-		'// 运算符支持
-		Select Case(LCase(strOpera))
-			Case "==":
-				return = (CStr(strVar) = CStr(strValue))
-			Case "<=", "&lt;=":
-				return = (CDbl(strVar) <= CDbl(strValue))
-			Case ">=", "&gt;=":
-				return = (CDbl(strVar) >= CDbl(strValue))
-			Case ">", "&gt;":
-				return = (CDbl(strVar) > CDbl(strValue))
-			Case "<", "&lt;":
-				return = (CDbl(strVar) < CDbl(strValue))
-			Case "!=", "<>", "&lt;&gt;":
-				return = (CStr(strVar) <> CStr(strValue))
-			Case "%", "mod":'// 模运算支持,感谢优能科技提供代码
-				strValue = Split(strValue, "=")
-				return = (CLng(strVar) mod CLng(strValue(0)) = CLng(strValue(1)))
-		End Select		
-		ifOperator = System.Text.IIF((Err.Number = 0), return, False): Err.Clear
+	'私有函数部分----------------------
+	'//字典对象
+	Public Function Dicary()
+		Set Dicary = Server.CreateObject("Scripting.Dictionary")
 	End Function
 	
-	'// 单值替换,替换Assign_Tag标签
-	Private Function Assign_tag(ByVal strCode, ByVal Pattern)
-		Dim html : html = strCode
-		Dim Match, Matches		
-		'// 单标签处理
-		EX.Pattern = Pattern
-		Set Matches = EX.Execute(html)		
-		'// 单标签支持
-		'// 0=标签名, 1=标签属性
-		For Each Match in Matches
-			html = Replace(html, Match.value, Return_Tag_Val(DIC_BLOCK_ATTR(LCase(Match.SubMatches(0))), Match.SubMatches(1)))
-		Next		
-		'// 在html中添加额外的meta
-		'EX.Pattern = "<head>" : Set Matches = EX.Execute(html)
-		'For Each Match in Matches: html = Replace(html, Match.Value, Match.value&vbnewline&strMeta): Next
-		Set Matches = Nothing
-		Assign_tag = html
+	'xmlDom对象
+	Private Function xmlDom(ByVal root)
+		Set xmlDom = Server.CreateObject("Msxml2.Domdocument")
+			xmlDom.async = False''.async'选项设置成'False'，是为了告诉浏览器中的XML解析器：一边读取XML文档，一边进行数据显示
+		If Len(root) > 0 Then
+			'创建一个节点对象
+			xmlDom.appendChild(xmlDom.CreateElement(root))
+			'添加xml头部
+			Dim head
+			Set head = xmlDom.createProcessingInstruction("xml","version=""1.0"" encoding="""&strCharset&"""")
+			xmlDom.insertBefore head,xmlDom.childNodes(0)
+		End If
 	End Function
 	
-	'// ASP函数调用，可以调用asp的内置函数或者自定义函数
-	Private Function Assign_asp(ByVal strCode)
-		On Error Resume Next
-		Dim html: html = strCode
-		Dim Match, Matches
-		'// 单标签处理
-		EX.Pattern = "\{asp\s+(.+?)\s?\}"
-		Set Matches = EX.Execute(html)		
-		'// 单标签支持
-		'// 0=标签名, 1=标签属性
-		For Each Match In Matches: html = Replace(html, Match.Value, Eval(Trim(Match.SubMatches(0)))): Next
-		Set Matches = Nothing: Err.Clear
-		Assign_asp = html
+	'//流对象
+	Private Function adodbStream()
+		Set adodbStream = Server.CreateObject("Adodb.Stream")
+		With adodbStream
+			.Type = 2
+			.Mode = 3
+			.Open
+			.Charset = strCharset
+			.Position = .Size
+			.Close
+		End With
 	End Function
 	
-	'// 逻辑判断块的输出
-	Private Function Assign_if(ByVal strCode)
-		Dim html: html = strCode
-		Dim return: return = False
-		Dim strVar, strOperator, strValue
-		Dim OutputTag, arrBlock, block_index
-		Dim Match, Matches
-
-		EX.Pattern = "{if name=""(.*?)""}"
-		Set Matches = EX.Execute(html)
-		For Each Match in Matches
-			block_index = Trim(Match.SubMatches(0))'if块的索引
-			'// 获取到索引后,读取字典数据
-			'// 0=索引,1=条件(),2=分支
-			arrBlock = DIC_BLOCK_IF(block_index)			
-			'if的条件
-			strVar      = Assign_tag(arrBlock(1)(0), "(@\w+)(.*)?")	'// 外部输入的值
-			strOperator = Trim(arrBlock(1)(1))						'// 运算符
-			strValue    = Assign_tag(arrBlock(1)(2), "(@\w+)(.*)?")	'// 支持表达式两边是变量			
-			'// 表达式运算
-			return = ifOperator(strOperator, strVar, strValue)			
-			'// 分支的选择
-			'// 如果有多个分支
-			If Ubound(arrBlock(2)) > 0 Then OutputTag = System.Text.IIF(return, arrBlock(2)(0), arrBlock(2)(1)) _
-			Else OutputTag = System.Text.IIF(return, arrBlock(2)(0), "")			
-			'// 输出标签
-			html = Replace(html, Match.Value, OutputTag)		
-		Next
-		Set Matches = Nothing
-		Assign_if = html
+	'//FSO 读取文件
+	Private Function readFile(ByVal strFilePath, ByVal strCharset)
+		readFile = System.IO.Read(strFilePath)
 	End Function
 	
-	'// 提取出loop里面的empty标签，并且解析出loop标签
-	'// 返回数组0=loop主体,1=empty
-	Private Function Assign_loop_bodytag(ByVal strCode)
-		Dim aryBody(1), Match, Matches
-		EX.Pattern = "<empty>([\s\S]*?)</empty>"
-		Set Matches = EX.Execute(strCode)
-		'// 如果有<empty>标签
-		If Matches.Count > 0 Then
-			For Each Match In Matches
-				'// 提取主体
-				aryBody(0) = EX.Replace(strCode, "")
-				aryBody(1) = Match.SubMatches(0)
-			Next
-		Else aryBody(0) = strCode: aryBody(1) = "" End If
-		Set Matches = Nothing
-		Assign_loop_bodytag = aryBody
-	End Function
-	
-	'// 循环块的输出
-	Private Function Assign_loop(ByVal strCode)
-		Dim html: html = strCode
-		Dim BlockValue, OutputTag
-		Dim block_index, arrBlock, strBlock, subBlock
-		Dim Match, Matches
+	'//FSO 保存文件
+	Private Function saveFile(ByVal strPath,ByVal strContent,ByVal strCharset)
+		Dim Matches : strPath = expReplace(strPath,"(\/|\\)+","\")
+		Set Matches = expMatch(strPath,"(.*?)([^\\]*\.\w{2,5})?$")'分离文件路径和文件名
 		
-		'// 循环体输出<loop>
-		EX.Pattern = "{loop name=""(.*?)""}"
-		Set Matches = EX.Execute(html)
-		For Each Match in Matches
-			block_index = Trim(Match.SubMatches(0))'loop块的索引
-			'// 获取到索引后,读取字典数据
-			'// 0索引,1='数组对象(0=名,1=值),2循环体
-			arrBlock = DIC_BLOCK_LOOP(block_index)			
-			'// 块的值
-			BlockValue = DIC_BLOCK_LOOP_VAL(block_index)			
-			'// 块的循环体
-			'// 检测循环体中的<empty>标签,并且提取出来
-			strBlock = Assign_loop_bodytag(arrBlock(2))			
-			OutputTag = ""
-			'// 如果输入的是数组
-			If IsArray(BlockValue) Then
-				Set subBlock = GetLoopBlock(arrBlock(2)) '// 获得循环块				
-				Dim rs: rs = BlockValue
-				'// 循环输出记录集
-				'// 由于是二维数组，没有记录到字段名，所以数据输出只能用下标
-				Dim I: For I = 0 To Ubound(rs, 2)
-					'// 标签输出(块索引,循环内容,记录集,序号)
-					OutputTag = OutputTag & Assign_loop_Tag(block_index, block_index, strBlock(0), rs, I)
-					'// 嵌套循环支持
-					IF TypeName(subBlock)="IMatchCollection2" Then OutputTag = Assign_subloop(block_index,OutputTag)
-					'// 序号输出
-					OutputTag = Replace(OutputTag, "(i)", I + 1)
-					'// 支持loop里面的if
-					OutputTag = Return_If_Tag_Val(OutputTag)
-				Next
+		If Matches.Count = 2 Then
+			Dim strFilePath, strFileName, strCreatePath
+			strFilePath = Matches(0).SubMatches(0) '文件路径
+			strFileName = Matches(0).SubMatches(1) '文件名
+			
+			strCreatePath = expReplace( strFilePath & "\" & IIF(Len(strFileName),strFileName,"index.html") ,"(\/|\\)+","\")
+			
+			'自动创建目录,生成页面
+			System.IO.Save strCreatePath, strContent
+		Else
+			call errRaise("路径不合法，请检查路径")
+		End If
+	End Function
+	
+	'//FSO自动生成文件夹路径
+	Private Function autoCreateFolder(ByVal strPath)
+		autoCreateFolder = System.IO.CreateFolder(strPath)
+	End Function
+
+	'三元表达式
+	Private Function IIF(ByVal a, ByVal b, ByVal c)
+		If a Then IIF = b Else IIF = c End IF
+	End Function
+	
+	'在 a中找到 b的match,如果没有找到返回Empty
+	Private Function expMatch(ByVal a, ByVal b)
+		objEXP.Pattern = b : Set expMatch = objEXP.Execute(a)
+	End Function
+	
+	'转义正则字符
+	Private Function expEncode(ByVal sText)
+		Dim i,ary : ary = Split(". * + ? | ( ) { } ^ $ :"," ")
+		sText = Replace(sText, "\" , "\\")
+		For i = 0 to Ubound(ary)
+			sText = Replace(sText, ary(i) , "\"&ary(i))
+		Next
+		expEncode = sText
+	End Function
+
+	'正则替换expReplace
+	Private Function expReplace(ByVal a,ByVal b,ByVal c)
+		objEXP.IgnoreCase = True
+		objEXP.Global = True
+		objEXP.Pattern = b
+		expReplace = objEXP.Replace(a, c)
+	End Function
+
+	'ASP的正则expSplit
+	Private Function expSplit(ByVal a,ByVal b)
+		Dim Match, SplitStr : SplitStr = a
+		Dim Sp : Sp = "#Boyle.ACL@"
+			For Each Match in expMatch(a,b)
+				SplitStr = Replace( SplitStr , Match.value , Sp ,1,-1,0)
+			Next
+		expSplit = Split( SplitStr, Sp)
+	End Function
+	
+	'getMapPath'判断路径是否是绝对路径，不是的话返回绝对路径
+	Private Function getMapPath(ByVal strPath)
+		getMapPath = System.IO.FormatFilePath(strPath)
+	End Function
+	
+	'功能:返回指定数组的维数
+	Private Function getArrayDimension(ByVal aryVal)
+		On Error Resume Next
+		getArrayDimension = -1
+		If Not IsArray(aryVal) Then
+			Exit Function
+		Else
+			Dim i,iDo
+			For i = 1 To 4
+				iDo = UBound(aryVal, i)
+				If Err Then Err.Clear: Exit Function _
+				Else getArrayDimension = i
+			Next
+		End If
+	End Function
+	
+	'加载或者缓存模板
+	Private Sub loadCacheTemplate
+		'缓存类型 0=不缓存,1=内存缓存,2=文件缓存
+		Select Case intTemplateCacheType
+		Case 0'不缓存
+			Call load()
+		Case 1,3'1=模板内存缓存,3=结果内存缓存
+			If cacheTimeOut(strAppCacheName,1,intTemplateCacheTime) = 0 Then
+				strTemplateHtml = getCacheValue(strAppCacheName,1)
+				Set tplXML = getCacheValue("tplXML",1)
 			Else
-				OutputTag = strBlock(1)	'// 支持自定义记录为空的模板
-				OutputTag = Return_If_Tag_Val(OutputTag)	'// 支持loop里面的if
-			End If			
-			html = Replace(html, Match.Value, OutputTag)
-		Next
-		Set Matches = Nothing
-		Assign_loop = html
-	End Function
-	
-	'// 解析子循环部分
-	Private Function Assign_subloop(ByVal block_index,ByVal strCode)
-		Dim html : html = strCode
-		Dim Match, Matches
-		Dim attr, arrAttr
-		Dim subLoop, subAttr, subBody, strBlock, blockid
-		Dim rs, I, substr
-		Set Matches = GetLoopBlock(strCode)'获得对象
-		For Each Match in Matches'0=标签名,1=参数部分(如果没有就为空),2=循环体
-			subLoop = Replace(Match.SubMatches(0), ":", "")'标签名
-			subAttr = Match.SubMatches(1)'属性部分
-			subBody = Match.SubMatches(2)'循环体
-			arrAttr = Analysis_block_attr(subAttr)'子循环的标签名跟属性组
-			
-			'//索引规则是 上一级的 loopname.本级.loopname loop>loop
-			blockid = block_index&"."&subLoop
-			
-			'// 块的循环体
-			'// 检测循环体中的<empty>标签,并且提取出来
-			'strBlock = Assign_loop_bodytag(subBody)
-			
-			'如果有属性组
-			If IsArray(arrAttr) Then'获得子循环的值并且替换输出
-				rs = GetSubLoopData(blockid, subAttr)'获得数据
-				substr = ""
-				If TypeName(rs) = "Variant()" Then'二维数据
-					'循环输出记录集
-					'由于是二维数组，没有记录到字段名，所以数据输出只能用下标
-					For I = 0 To Ubound(rs, 2)
-						'// 标签输出(块内容名称,块索引,循环内容,记录集,序号)
-						substr = substr & Assign_loop_Tag(subLoop, blockid, subBody, rs, I)
-						substr = Replace(substr, "(ii)", I + 1)'序号输出
-						substr = Return_If_Tag_Val(substr)'支持loop里面的if
-					Next
-					html = Replace(html, Match.Value, substr)
-				'如果数据为空
-				Else html = Replace(html, Match.Value, "") End If
-				'清空数据集
-				If DIC_BLOCK_LOOP_VAL.Exists(blockid) Then DIC_BLOCK_LOOP_VAL.Remove(blockid)
-			Else html = Match.value End If
-		Next
-		Set Matches = Nothing
-		Assign_subloop = html
-	End Function
-	
-	'// 获得子循环中的块的值(属性参数部分)
-	Private Function GetSubLoopData(ByVal blockid,ByVal subAttr)
-		On Error Resume Next
-		Dim data: data = Empty
-		Dim attr, rs, I, strTag: strTag = blockid
-		attr = GetAttribute(subAttr, "data") '// 支持 data 属性
-		If Not IsEmpty(attr) Then
-			Set rs = Eval(attr) '// 执行
-			If TypeName(rs)="Recordset" Then
-				'字段设置-----------在这里建立循环中的对应关系
-				For I = 0 To rs.Fields.Count - 1 
-					RS_FIELD(strTag&"."&LCase(rs.Fields(I).name)) = I '// 建立字段索引
-				Next
-				'// 赋值到循环块列表中
-				If Not rs.Eof Then
-					data = rs.GetRows '// 返回getrows数据
-					If DIC_BLOCK_LOOP_VAL.Exists(strTag) Then DIC_BLOCK_LOOP_VAL.Remove(strTag)
-					DIC_BLOCK_LOOP_VAL(strTag) = data '//赋值到循环块列表中
-				End If
-				'// 程序后面还可以引用rs记录集，所以这里不用关闭，不过在外面的时候记得要关闭
-				'rs.Close()
+				load()
+				setCacheValue strAppCacheName,strTemplateHtml,1
+				setCacheValue "tplXML",tplXML,1
 			End If
-		End If
-		GetSubLoopData = data:Err.Clear
+		Case 2,4'2=模板文件缓存,4=结果文件缓存
+			'检查文件是否存在:缓存不存在=-1,超时>0,没有超时=0
+			If cacheTimeOut(strFileCachePath & ".xml",2,intTemplateCacheTime) = 0 Then
+			Set tplXML = XMLDOM("")
+				tplXML.load(strFileCachePath & ".xml")
+			Else
+				Call load()
+				tplXML.Save(strFileCachePath & ".xml")
+			End If
+		Case 3,4'3=结果内存缓存,'4=结果文件缓存
+			Call getHtml()
+		End Select
+	End Sub
+	
+	Private Sub load()'读取模板文件
+		strTemplateHtml = loadInclude(readFile(strTemplateFilePath,strCharset),strTemplateFilePath)'
+		strTemplateHtml = expReplace(expReplace(strTemplateHtml,"\<\!\-\-\s*\{","{"),"\}\s*\-\-\>","}")
+		'编译模板，并且用XML存储模板标签节点
+		compileTemplate Array(strTemplateHtml,strTagHead),tplXML.selectSingleNode(strRootXMLNode)
+		'保存模板到XML
+		tplXML.selectSingleNode(strRootXMLNode).appendChild(tplXML.createCDATASection(strTemplateHtml))
+	End Sub
+	
+	'模板的include支持
+	Private Function loadInclude(ByVal strHtml,ByVal strPath)
+		Dim incPath,html : html = strHtml
+		Dim Match,Matches
+		For Each Match in expMatch(strHtml,"{include\s*([\('""])?\s*(.*?)\1}")
+			incPath = getMapPath(strRootPath & strTemplatePath & Match.SubMatches(1))
+			If strPath <> incPath Then
+				html = Replace(html,Match.value,loadInclude(readFile(incPath,strCharset),incPath),1,-1,0)
+			Else
+				html = Replace(html,Match.value,"",1,-1,0)
+			End If
+		Next
+		loadInclude = html
 	End Function
 	
-	'// 在属性中获得单标签的参数(从什么字符串中,检测什么参数名)
-	Private Function GetAttribute(ByVal attrCode, ByVal attrName)
-		Dim Matches, attr: attr = Empty
-		'// 获得某个参数参数
-		EX.Pattern = "\s?("&attrName&")\s*=\s*['""|]([\s\S.]*?)['""|]\s+"
-		Set Matches = EX.Execute(" " & attrCode & " ")		
-		If Matches.Count Then attr = Matches(0).SubMatches(1)
-		Set Matches = Nothing
-		GetAttribute = attr
-	End Function
-	
-	'// 循环块内部的处理,替换循环体的标签：块名,块索引,循环体,记录集,行号
-	Private Function Assign_loop_Tag(ByVal strTag, ByVal strTagIndex, ByVal strBody, ByVal arrRs, ByVal intRowsNum)
-		Dim OutputTag, html: html = strBody
-		Dim id, rs: rs = arrRs
-		Dim Match, Matches
+	'编译模板
+	'参数：模板内容,标签头,XML节点路径
+	Private Sub compileTemplate(ByVal aryVal,ByVal nodeDOM)
+		If Len(aryVal(1))=0 Then Exit Sub End If
+		Dim Match,Matches,strPattern
+		Dim arrayTags(10) '定义一个数组，把模板的标签参数保存调用
+			strPattern = "\{("&expEncode(LCase(aryVal(1)))&")([a-zA-Z0-9:]+)?\s*?([\s\S]*?)\/?\}[\n|\s|\t]*?(?:[\n]*?([\s\S]*?)[\n|\s|\t]*?(\{/\1\2\}))?"
+		'解析标签
+		For Each Match in expMatch(aryVal(0),strPattern)
+			arrayTags(0) = Match.SubMatches(0) ' 标签头
+			arrayTags(1) = Match.SubMatches(1) ' 标签名称
+			arrayTags(2) = Match.SubMatches(2) ' 标签属性
+			arrayTags(3) = Match.SubMatches(3) ' 闭合部分的内容
+			arrayTags(4) = ""                  ' empty标签
+			arrayTags(5) = arrayTags(3)        ' 仅循环体部分,不包含empty
+			arrayTags(6) = IIF(Len(Match.SubMatches(4))+Len(Match.SubMatches(3)),1,0) ' 如果是闭合标签，并且有模板内容，闭合标签才有效
+			arrayTags(7) = Match.Value '模板内容
 
-		'EX.Pattern = "\(@([\d+|\w+]+)(.*?)\)"
-		EX.Pattern = "\((@|"&strTag&"\.)([\d|\w]+)(.*?)\)"
-		EX.Global = True
-		EX.IgnoreCase = True
-		Set Matches = EX.Execute(strBody) '执行搜索
-		For Each Match in Matches
-			OutputTag = ""
-			'1=字段名或者下标,2=输出属性
-			'Ubound(rs,1)字段大小
-			id = Match.SubMatches(1)'索引出列名或者列id
-			'循环体的标签名是字段名还是下标，最终是以下标为准，如果传递的是字段名，也要把索引ID返回
-			id = System.Text.IIF(IsNumeric(id), id, RS_FIELD(strTagIndex&"."&LCase(id)))
-			
-			'单标签的值
-			'如果下标超过字段宽度，那么这个值为空
-			If Len(id) > 0 Then
-				id = Int(id)
-				OutputTag = System.Text.IIF( (id > Ubound(rs, 1)), "", Return_Tag_Val(rs(id, intRowsNum), Match.SubMatches(2)) )
-			End If			
-			html = Replace(html, Match.Value, OutputTag)
+			'如果是有结束标签,表示这个是一个闭合标签
+			If arrayTags(6) Then
+			Dim closeTags : closeTags = getCloseBlock(Array(arrayTags(3),arrayTags(1)))
+				arrayTags(4) = closeTags(0)    ' empty标签
+				arrayTags(5) = closeTags(1)    ' 仅循环体部分,不包含empty
+				arrayTags(8) = expReplace( getBlockAttr(nodeDOM)("nodepath") & "/" & arrayTags(1),"^\/","")'节点路径
+			End If
+			'创建节点
+			nodeDOM.appendChild(getTemplateNode(arrayTags))
 		Next
-		Set Matches = Nothing
-		'// 一条完整的循环内容返回
-		Assign_loop_Tag = html
+	End Sub
+	
+	'解析模板
+	Private Sub analysisTemplate
+		Dim node: Set node = tplXML.selectNodes(strRootXMLNode)'从根目录开始遍历模板标签节点
+		'模板输出的思路是，遍历模板标签节点，根据编译的节点信息来输出值
+		strResultHtml = analysisBlockLabel(node(0).lastchild.nodeTypedValue, node(0).childNodes, strTagHead, dicLabel)'循环以及嵌套循环标签		
+		strResultHtml = returnLabelValues(strResultHtml, strTagHead, dicLabel, 1)'单标签
+		strResultHtml = executeTemplate(returnIfLabel(strResultHtml, strTagHead, dicLabel))
+		Set node = Nothing
+	End Sub
+	
+	'解析标签，获取值
+	'参数：代码、节点、标签前缀、字典数据(用来支持标签值的调用)
+	Private Function analysisBlockLabel(ByVal strHtml,ByVal node,ByVal strHead,ByVal objDIC)
+		If Len(strHtml) = 0 Then Exit Function End If
+		'由于是从根节点开始遍历，所以不用考虑多个标签相同的情况，所以只要遍历根结点的子节点就可以了
+		Dim html : html = strHtml
+		Dim i
+		For i = 0 To node.Length - 1
+		'遍历所有子节点,遇到循环就递归调用
+			If node(i).childNodes.Length > 3 Then
+			Dim dicData : Set dicData = Dicary()
+			Dim aryLabel,aryField,returnHtml
+			Dim rs,rsDic,dicRS,conn
+				
+				aryLabel = getLabelNode(node(i))'提取节点值
+				dicData("dtype") = -1
+				
+				'尝试获取值
+				If Len(aryLabel(5)(strBlockDataAtr)) Then
+					dicData("path") = aryLabel(5)("nodepath") & "["&strBlockDataAtr&"=" & aryLabel(5)(strBlockDataAtr) &"]"
+				Else
+					dicData("path") = aryLabel(5)("nodepath")
+				End If
+				
+				If dicLabel.Exists(dicData("path")) Then
+					If IsObject(dicLabel(dicData("path"))) Then
+					Set dicData("data") = dicLabel(dicData("path"))
+					Else
+						dicData("data") = dicLabel(dicData("path"))
+					End If
+				End If
+				
+				'如果已经给块赋值
+				If dicData.Exists("data") Then
+					'检测块值的类型
+					Select Case TypeName(dicData("data"))
+					Case "Recordset"'如果块传值是记录集
+						'On Error Resume Next
+						Set rs = dicData("data")
+						dicData("dtype") = 1'RS记录集
+					Case "Variant()"'如果传递的是数组
+						If Ubound(dicData("data")) = 1 Then
+							Select Case TypeName(dicData("data")(0))
+							Case "Recordset"'数据集
+								Set rs = dicData("data")(0)
+								dicData("dtype") = 1'RS记录集
+								aryField = expSplit(dicData("data")(1),"\s*,\s*")'字段序列
+							Case "Variant()"'数组
+								Dim arycount : arycount = getArrayDimension(dicData("data")(0))
+								If arycount = 1 Then'如果是一维数组
+								Set dicRS = rsToDic(dicData("data")(0))
+								dicData("dtype") = 2'数组转成了字典
+								aryField = expSplit(dicData("data")(1),"\s*,\s*")'字段序列
+								If TypeName(aryField)="Variant()" Then Set dicRS = redimField(dicRS,aryField)'重命名字段
+								ElseIf arycount = 2 Then'二维数组
+									rs = dicData("data")(0)
+									aryField = expSplit(dicData("data")(1),"\s*,\s*")'字段序列
+									dicData("dtype") = 3
+								Else
+									dicData("dtype") = 0
+								End If
+							End Select
+						End If
+					Case "Dictionary"'如果传递的是字典
+						Set dicRS = dicData("data")
+							dicData("dtype") = 2'字典
+					Case Else'其他数据类型，主要是 字符、数字等可以直接输出的类型
+						dicData("dtype") = 0
+					End Select
+				Else'如果没有赋值,就根据节点设置获得值
+					dicData("dtype") = 1'RS记录集
+					dicData("sql") = returnLabelValues(aryLabel(5)("sql"),strHead,objDIC,0)'获取Sql
+					dicData("conn") = returnLabelValues(aryLabel(5)("conn"),strHead,objDIC,0)'获取CONN
+					On Error Resume Next
+					Set conn = adoConn
+					If Len(dicData("conn"))>2 Then
+					Set conn = Eval(dicData("conn"))
+					End If
+					If conn.State = 0 Then conn.Open()'如果数据库是关闭的就打开
+					Set rs = conn.execute(dicData("sql"))
+					If Err Then dicData("dtype") = 4 '错误信息
+				End If
+				
+				'数据处理
+				Dim k : k = 0
+				dicData("loohtm") = ""
+				dicData("taglab") = aryLabel(0)&"."
+				dicData("dr") = expReplace(aryLabel(5)("dr"),"\s*([a-zA-Z0-9]+)\(([a-zA-Z0-9]+)\)\s*","$1(dicRS)")'数据渲染
+				Select Case dicData("dtype")
+				Case 0 '字符串等
+					returnHtml = dicData("data")
+				Case 1 '记录集
+					If rs.Eof Then
+						returnHtml = returnLabelValues(aryLabel(4),strTagHead,dicLabel,1)
+					Else
+						'遍历数据
+						While Not rs.Eof : k = k + 1
+							Set dicRS = rsToDic(rs) : dicRS("i") = k '支持属性 (name.i) 调用序号，但要求字段中避免有 i 这个字段名,否则会被这里的值覆盖
+							If TypeName(aryField)="Variant()" Then Set dicRS = redimField(dicRS,aryField)'重命名字段
+							If Right(dicData("dr"),7)="(dicRS)" Then Set dicRS = Eval(dicData("dr")) '数据重定义或渲染
+							dicData("loohtm") = dicData("loohtm") &_
+							analysisBlockLabel(returnLabelValues(aryLabel(3),dicData("taglab"),dicRS,1),node(i).childNodes,dicData("taglab"),dicRS)'递归循环
+							dicData("loohtm") = returnIfLabel(dicData("loohtm"),dicData("taglab"),dicRS)'搞定IF比较值
+							rs.MoveNext
+						Wend
+						returnHtml = dicData("loohtm")
+					End If
+					Set rs = Nothing
+					If IsObject(conn) Then Set conn = Nothing
+				Case 2 '字典数据、一维数组
+					If TypeName(aryField)="Variant()" Then Set dicRS = redimField(dicRS,aryField)'重命名字段
+					If Right(dicData("dr"),7)="(dicRS)" Then Set dicRS = Eval(dicData("dr")) '数据重定义或渲染
+					dicData("loohtm") = dicData("loohtm") &_
+					analysisBlockLabel(returnLabelValues(aryLabel(3),dicData("taglab"),dicRS,1),node(i).childNodes,dicData("taglab"),dicRS)'递归循环
+					dicData("loohtm") = returnIfLabel(dicData("loohtm"),dicData("taglab"),dicRS)'搞定IF比较值
+					
+					returnHtml = dicData("loohtm")
+				Case 3 '二维数组
+					Dim a,b
+					Set dicRS = Dicary()
+					For a = 0 To Ubound(rs,1) : k = k + 1
+						dicRS("i") = k
+						For b = 0 To Ubound(rs,2) : dicRS(b)=rs(a,b) : Next'二级循环数据赋值
+						
+						If TypeName(aryField)="Variant()" Then Set dicRS = redimField(dicRS,aryField)'重命名字段
+						If Right(dicData("dr"),7)="(dicRS)" Then Set dicRS = Eval(dicData("dr")) '数据重定义或渲染
+						dicData("loohtm") = dicData("loohtm") &_
+						analysisBlockLabel(returnLabelValues(aryLabel(3),dicData("taglab"),dicRS,1),node(i).childNodes,dicData("taglab"),dicRS)'递归循环
+						dicData("loohtm") = returnIfLabel(dicData("loohtm"),dicData("taglab"),dicRS)'搞定IF比较值
+					Next
+					returnHtml = dicData("loohtm")
+				Case Else'如果不知道类型就输出空值
+					returnHtml = ""
+				End Select
+				'标签替换
+				html = Replace(html,aryLabel(2),returnHtml,1,-1,0)
+				Set dicData = Nothing
+			End If
+		Next
+		analysisBlockLabel = html
 	End Function
 	
-	'// 支持loop里的if
-	Private Function Return_If_Tag_Val(ByVal strBody)
-		Dim OutputTag, tmpStr, tmpArr, html: html = strBody
-		Dim return, strVar, strOperator, strValue
-		Dim Match, Matches
-		
-		EX.Pattern = "{if\s*(.+?)\s*("&OPS&")\s*['""|]*(.+?)['""|]*\s*}([\s\S.]*?){\/if}"
-		Set Matches = EX.Execute(strBody) '执行搜索
-		'0=条件,1=表达式,2值,3=分支
-		For Each Match in Matches
-			strVar = Assign_tag(Trim(Match.SubMatches(0)),"(@\w+)(.*)?")
-			strOperator = Match.SubMatches(1)
-			strValue = Assign_tag(Trim(Match.SubMatches(2)),"(@\w+)(.*)?")
-			tmpArr = Split(Match.SubMatches(3), "{else}")'分支的选择
-			
-			If Ubound(tmpArr) Then tmpStr = tmpArr(1)
-			'如果表达式成立,返回分支1，否则返回分支2
-			OutputTag = System.Text.IIF(ifOperator(strOperator, strVar, strValue), tmpArr(0), tmpStr)
-			
-			html = Replace(html, Match.Value, OutputTag)
-		Next
-		Set Matches = Nothing
-		Return_If_Tag_Val = html
+	'格式化值输出,参数：值，属性
+	Private Function formatValues(ByVal strVal,ByVal dicAttr)
+		Dim return : return = strVal
+		Dim key,val
+		For Each key In dicAttr''遍历节点属性节点,根据节点的属性返回值
+			val = returnLabelValues(dicAttr(key),strTagHead,dicLabel,0)
+			Select Case (LCase(key))
+			Case "dateformat":'日期格式化
+				return = dateFormat(return,val)
+			Case "len","length"
+				return = IIF(Len(val),Left(return,val),return)
+			Case "return"
+				Dim str,i : val = Split(LCase(val),",")
+				For i=0 To Ubound(val)
+					Select Case val(i)
+					Case "urlencode":'返回URLEncode
+						return = Server.URLEncode(return)
+					Case "htmlencode":
+						return = Server.HTMLEncode(return)
+					Case "htmldecode":
+						return = Replace(return, "&" , Chr(38))
+						return = Replace(return, """", Chr(34))
+						return = Replace(return, "<" , Chr(60))
+						return = Replace(return, ">" , Chr(62))
+						return = Replace(return, " " , Chr(32))
+					Case "clearhtml","removehtml":'清除html格式
+						return = expReplace(return,"<[^>]*>", "")
+					Case "clearspace":
+						return = expReplace(return,"[\n\t\r|]|(\s+|&nbsp;|　)+", "")
+					Case "clearformat":'清除所有格式
+						return = expReplace(return,"<[^>]*>|[\n\t\r|]|(\s+|&nbsp;|　)+", "")
+					End Select
+					str = str & return
+				Next
+				return = str
+			End Select
+		Next 
+		formatValues = return
 	End Function
 	
-	'// 单标签替换输出,支持带属性输出
-	Private Function Return_Tag_Val(ByVal strVal, ByVal strAttr)
-		'传递值和属性参数过来，根据属性 返回不同的值回去
-		If IsNull(strVal) Then Return_Tag_Val="": Exit Function
-		Dim arrAttr, tagVal
-		Dim return: return = strVal
-		arrAttr = Analysis_block_attr(Trim(strAttr))'获取属性列表
-		'如果有参数
-		IF IsArray(arrAttr) Then
-			Dim I: For I = 0 To Ubound(arrAttr)'逐个检查属性
-				'arrAttr(I,0)'标签
-				'arrAttr(I,1)'输入的值
-				return = TagProperty(Trim(arrAttr(I, 0)), arrAttr(I,1), return)'标签属性的支持
+	'重定义字段数据
+	Private Function redimField(ByVal dicData,aryField)
+		Dim i
+		For i = 0 To Ubound(aryField)
+			If dicData.Exists(i) Then dicData(LCase(aryField(i))) = dicData(i)
+		Next
+		Set redimField = dicData
+	End Function
+	
+	'记录集转为字典
+	Private Function rsToDic(ByVal data)
+		Dim i,  dic
+		Set dic = Dicary()
+		Select Case TypeName(data)
+		Case "Recordset"'数据集
+			For i = 0 To data.Fields.Count - 1 '字段序列
+				dic(LCase(data.Fields(i).Name)) = data(i)'字段名
+				dic(i) = data(i)'字段下标
 			Next
+		Case "Variant()"'数组
+			For i = 0 To Ubound(data) '字段序列
+				dic(i) = data(i)'字段下标
+			Next
+		End Select
+		Set rsToDic = dic
+	End Function
+
+	'executeTemplate
+	Private Function executeTemplate(ByVal strHtml)
+		Dim html : html = strHtml
+		Dim Matchs
+		Set Matchs = expMatch(html,"\{(?:if)\s+([^}]*?)?\}")
+		If Matchs.Count Then
+			html = expReplace(html,"\{(?:if)\s+([^}]*?)?\}","<"&"%If $1 Then%"&">")
+			html = expReplace(html,"\{(?:elseif|ef)\s+([^}]*?)?\}","<"&"%ElseIf $1 Then%"&">")
+			html = expReplace(html,"\{(?:else\s+if)\s+([^}]*?)?\}","<"&"%Else If $1 Then%"&">")
+			html = expReplace(html,"\{else\s*\}","<"&"%Else%"&">")
+			html = expReplace(html,"\{/if\}","<"&"%End If%"&">")
 		End If
-		Return_Tag_Val = return
+		'Execute(html)
+		Set Matchs = expMatch(html,"\<"&"%([\s\S]*?)%"&"\>")
+		If Matchs.Count Then'ASP代码支持，还不是那么完美,如果要解决，就要在下面的代码里面做处理
+		Dim tmp : tmp = expSplit(html,"\<"&"%([\s\S]*?)%"&"\>")
+			Dim i
+			Dim htm : htm = "Dim str : str = """"" & vbcrlf
+			For i = 0 To Matchs.Count - 1
+				tmp(i) = Replace(Replace(tmp(i),"<"&"%","&lt;%"),"%"&">","%&gt;")
+				htm = htm & "str = str & tmp("&i&")" & vbcrlf
+				htm = htm & Matchs(i).SubMatches(0) & vbcrlf
+			Next
+			
+			Execute(htm)
+			html = str
+		End If
+		Set Matchs = Nothing
+		executeTemplate = html
 	End Function
 	
-	'// 变量替换
-	Private Function AssignTpl()
-		Dim html: html = strTemplate		
-		html = Assign_if(html)					'先逻辑
-		html = Assign_loop(html)				'循环块
-		html = Assign_tag(html,"{(@\w+)(.*?)}")	'单标签
-		html = Assign_asp(html)					'ASP函数调用支持
-		strTemplate = html
+	'IF
+	Private Function returnIfLabel(ByVal strHtml,ByVal strHead,ByVal dicRS)
+		Dim html : html = strHtml
+		Dim Match
+		For Each Match in expMatch(strHtml,"\{(?:if|elseif|ef)\s+([^}]*?)?\}")
+			html = Replace(html,Match.value,returnLabelValues(Match.value,strHead,dicRS,0))
+		Next
+		returnIfLabel = html
 	End Function
 	
-	'////////////////////////////////////////////////模板输出部分'////////////////////////////////////////////////
+	''标签属性值替换输出
+	Private Function returnLabelValues(ByVal strVal,ByVal strHead,ByVal dicObj,ByVal key)
+		Dim return,html : html = strVal
+		Dim val,Match
+		Dim Pattern(2)
+			Pattern(0) = "\((?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^)][\s\S]*?)?\s*\)"'()标签
+			Pattern(1) = "\{(?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^}][\s\S]*?)?\s*\}"'{}标签
+			'(0)'标签名  (1)'路径  (2)'属性
+		For Each Match in expMatch(strVal,Pattern(key))
+			If Len(Match.SubMatches(1)) Then'如果是通过路径获取属性
+				return = getAttr(Match.SubMatches(0)&Match.SubMatches(1))
+			Else
+				return = dicObj(LCase(Match.SubMatches(0)))
+			End If			
+			If Len(Match.SubMatches(2))>1 Then
+				return = formatValues(return,getBlockAttr(Match.SubMatches(2)))
+			End If			
+			html = Replace(html,Match.Value,return,1,-1,0)
+		Next
+		returnLabelValues = html
+	End Function
 	
-	'////////////////////////////////////////////////模板解析部分'////////////////////////////////////////////////
+	'返回一个标签节点的信息
+	Private Function getLabelNode(ByVal node)
+		Dim aryLabel(6)
+			aryLabel(0) = node.nodeName '节点名称
+		If node.childNodes.Length < 3 Then
+			aryLabel(1) = node.childNodes(0).nodeTypedValue '0=strAttr
+			aryLabel(2) = node.childNodes(1).nodeTypedValue '1=strHtml
+		End If
+		If node.childNodes.Length > 3 Then
+			aryLabel(1) = node.childNodes(0).nodeTypedValue '0=strAttr
+			aryLabel(2) = node.childNodes(1).nodeTypedValue '1=strHtml
+			aryLabel(3) = node.childNodes(2).nodeTypedValue '2=strBody
+			aryLabel(4) = node.childNodes(3).nodeTypedValue '3=strEmpty
+		End If
+		Set aryLabel(5) = getBlockAttr(node)'标签节点的所有属性
+		getLabelNode = aryLabel
+	End Function
 	
-	'// 解析loop 块的属性,返回属性的数组
-	Private Function Analysis_block_attr(ByVal strCode)
-		Dim arr: arr = False
-		Dim Match, Matches
-		Dim I: I = 0
+	'创建一个模板节点
+	Private Function getTemplateNode(ByVal arrayTags)
+		'XML操作部分
+		Dim subNode0,subNode1,subNode2,subNode3,subNode4,subNode5
+		Set subNode0 = tplXML.CreateElement(LCase(Trim(arrayTags(1))))
+		Set subNode1 = tplXML.CreateElement("attr") : subNode1.appendChild(tplXML.createCDATASection(arrayTags(2)))'标签属性
+		Set subNode2 = tplXML.CreateElement("html") : subNode2.appendChild(tplXML.createCDATASection(arrayTags(7)))'模板内容
+		Set subNode3 = tplXML.CreateElement("body") : subNode3.appendChild(tplXML.createCDATASection(arrayTags(5)))'循环体部分
+		Set subNode4 = tplXML.CreateElement("null") : subNode4.appendChild(tplXML.createCDATASection(arrayTags(4)))'empty标签
 		
-		EX.Pattern = "\s?(\w.+?)\s*=\s*['""|]([\s\S.]*?)['""|]\s+"
-		Set Matches = EX.Execute(" " & strCode & " ")
+		'设置节点的属性
+		Dim keys,tagAttr
+		Set tagAttr = getBlockAttr(arrayTags(2))'提取属性部分，名=值
+
+		'添加子节点
+		subNode0.appendChild(subNode1)
+		subNode0.appendChild(subNode2)
 		
+		If arrayTags(6) Then'如果是闭合标签
+			subNode0.appendChild(subNode3)
+			subNode0.appendChild(subNode4)
+			subNode0.SetAttribute "nodepath" , arrayTags(8) '辅助路径属性
+
+			If Len(arrayTags(2))>1 Then
+				Dim strSql
+					strSql = expReplace(tagAttr("sql"),"^(\w+)\(\s*(\w+)\s*,\s*(\w+)\s*\)$","$1(Tags,tagAttr)")'找SQL
+					IF Right(strSql,14) = "(Tags,tagAttr)" Then
+					strSql = Eval(strSql)
+					End If
+				subNode0.SetAttribute "sql" , strSql'SQL属性
+			End If
+			
+			'递归调用，这里是实现嵌套循环的关键
+			compileTemplate Array(arrayTags(3),arrayTags(0)),subNode0 
+		End If
+		
+		'添加属性到节点中
+		For Each keys in tagAttr
+			subNode0.SetAttribute keys,tagAttr(keys)
+		Next
+		
+		Set getTemplateNode = subNode0
+	End Function
+	
+	'分离EMPTY和循环体(代码,标签头)
+	Private Function getCloseBlock(ByVal aryTags)
+		Dim ary(1)
+		If Len(aryTags(0))>0 Then
+			Dim Match,strSubPattern
+				strSubPattern = "\{((?:empty|null|eof|nodata)\:"&aryTags(1)&")\s*?(?:[\s\S.]*?)\/?\}(?:([\s\S.]*?)\{/\1\})"
+			Set Match = expMatch(aryTags(0),strSubPattern)
+			
+			If Match.Count Then'如果有 empty 标签
+				ary(0) = Match(0).SubMatches(1) 'empty标签
+				ary(1) = expReplace(aryTags(0),strSubPattern,"") '循环体部分
+			Else
+				ary(1) = aryTags(0)
+			End If
+			Set Match = Nothing
+		End If
+		getCloseBlock = ary
+	End Function
+	
+	'获得属性列表,返回名值的字典对象
+	Private Function getBlockAttr(ByVal val)
+		Dim i
+		Dim Match,Matches,dicAttr
+		Set dicAttr = Dicary()'定义字段对象
+		'返回一个标签节点的所有属性
+		If TypeName(val) = "IXMLDOMElement" Then
+			For i = 0 To val.attributes.Length - 1
+				dicAttr(val.attributes(i).nodeName) = val.attributes(i).nodeTypedValue
+			Next
+		Else'存储名值对象
+			Set Matches = expMatch( val ,"([a-zA-Z0-9]+)\s*=\s*(['|""])([\s\S.]*?)\2")
+			For Each Match in Matches'0=属性,2=属性值
+				dicAttr(LCase(Trim(Match.SubMatches(0)))) = Match.SubMatches(2)
+			Next
+			Set Matches = Nothing
+		End If
+		Set getBlockAttr = dicAttr
+	End Function
+	
+	'选择一个带路径的节点,返回解析分解后的路径
+	Private Function selectLabelNode(ByVal strPath)
+		Dim Match,Matches : strPath = LCase(Trim(strPath))'标签转换成小写
+		Set Matches = expMatch( strPath ,"([a-zA-Z0-9\/]+)(\[@?((\w+)=(.*?))?\])?\.?(\w+)?(\:(body|empty|html|null|eof))?")
+		'传入参数示例：tag[attr=2].attr2:body
 		If Matches.Count Then
-			ReDim arr(Matches.Count-1, 1)
-			'0=属性,1=属性值
-			For Each Match In Matches
-				arr(I, 0) = Match.SubMatches(0)
-				arr(I, 1) = Match.SubMatches(1)
-				I = I + 1
-			Next
+			Dim ary(5)
+			ary(0) = Matches(0).SubMatches(0) 'tag
+			ary(1) = Matches(0).SubMatches(2) 'attr=2
+			ary(2) = Matches(0).SubMatches(5) 'attr2
+			ary(3) = Matches(0).SubMatches(6) ':body|:empty|:html
+				
+			Dim nodesPath'指定辅助路径
+			nodesPath = strRootXMLNode & "/" & ary(0)
+			If Len(Matches(0).SubMatches(1))>4 Then
+				nodesPath = nodesPath & "[@" &ary(1)& "]"
+			End If
+			
+			ary(4) = nodesPath'选择的路径
 		End If
 		Set Matches = Nothing
-		Analysis_block_attr = arr
+		selectLabelNode = ary
 	End Function
 	
-	'// 解析 if 块
-	Private Function Analysis_block_if(ByVal strCode)
-		Dim html: html = strCode
-		Dim Match, Matches
-		Dim block_id, block_name
-		Dim arrAttr(2), arrBranch '分支结构
-		Dim I, J: J = 0
-		Dim arrBlock_if(2)
-		
-		EX.Pattern = "{if\s*(.+?)\s*("&OPS&")\s*['""|]*(.+?)['""|]*\s*}([\s\S.]*?){\/if}"
-		Set Matches = EX.Execute(html)
-		'0=条件,1=表达式,2值,3=分支
-		For Each Match in Matches
-			J = J + 1 '序号作为块的标识
-			'0=条件,1=表达式,2值,3=分支
-			arrAttr(0) = Match.SubMatches(0)
-			arrAttr(1) = Match.SubMatches(1)
-			arrAttr(2) = Match.SubMatches(2)
-			arrBranch = Match.SubMatches(3)
-			
-			block_id = "block_" & J
-			block_name = "{if name=""@name""}" '块的名字
-			block_name = Replace(block_name, "@name", block_id)
-			
-			'缓存块id
-			arrBlock_if(0) = block_id'索引
-			arrBlock_if(1) = arrAttr'条件
-			arrBlock_if(2) = Split(arrBranch , "{else}")'分支结构
-			
-			'把块变量保存到块的数据字典
-			DIC_BLOCK_IF(block_id)=arrBlock_if			
-			'把if块替换成单标签,并且有特定的标记
-			html = Replace(html, Match.Value, block_name)
-		Next
-		Set Matches = Nothing
-		Analysis_block_if = html
-	End Function
-	
-	'// 解析循环模块
-	Private Function Analysis_block_loop(ByVal strCode)
-		Dim html: html = strCode
-		Dim Match, Matches
-		Dim block_id, block_name
-		Dim arrAttr, arrBranch '分支结构
-		Dim subLoop, subAttr
-		Dim I, J: J = 0
-		Dim K: K = 0
-		Dim arrBlock_loop(2)
-		
-		Set Matches = GetLoopBlock(strCode) '执行搜索。
-		'0=标签名,1=参数部分(如果没有就为空),2=循环体
-		If TypeName(Matches) <> "IMatchCollection2" Then Analysis_block_loop = strCode: Exit Function End If
-		
-		For Each Match in Matches
-			J = J + 1 '序号作为块的标识
-			block_name = Replace(Trim(Match.SubMatches(0)), ":", "")
-			arrAttr = Analysis_block_attr(Match.SubMatches(1))
-			If IsArray(arrAttr) Then
-				block_id = System.Text.IIF(Len(block_name), block_name, "block_" & J)
-				block_name = "{loop name=""@name""}" '块的名字
-				block_name = Replace(block_name , "@name" , block_id)
-				
-				'缓存块id
-				arrBlock_loop(0) = block_id
-				arrBlock_loop(1) = arrAttr'数组对象，0=名,1=值
-				arrBlock_loop(2) = Match.SubMatches(2)'循环体
-				
-				'把块变量保存到块的数据字典
-				DIC_BLOCK_LOOP(block_id) = arrBlock_loop
-				DIC_BLOCK_LOOP_LIST(block_id) = arrAttr'输出块内容，输出值是:块名，属性对象（数组结构）
-				
-				'设置输出属性
-				For K = 0 To Ubound(arrAttr)
-					DIC_BLOCK_LOOP_ATTR(block_id & "." & arrAttr(K, 0)) = arrAttr(K, 1)
-				Next		
-			Else block_name = Match.Value End If
-			
-			'把if块替换成单标签,并且有特定的标记
-			html = Replace(html, Match.value, block_name)
-		Next
-		Set Matches = Nothing
-		Analysis_block_loop = html
-	End Function
-	
-	'// 获得循环块
-	Private Function GetLoopBlock(ByVal strCode)		
-		EX.Pattern = "<loop(:[[a-zA-Z0-9]+)?\s*?([\s\S.]*?)>([\s\S.]*?)<\/loop\1>"
-		Dim Matches: Set Matches = EX.Execute(strCode)
-		If Matches.Count Then Set GetLoopBlock = Matches _
-		Else Set GetLoopBlock = Nothing
-		Set Matches = Nothing
-	End Function
-	
-	'// 解析单标签,主要是获取属性值,这里不做返回值
-	Private Function Analysis_block_tag(ByVal strCode, ByVal Pattern)
-		Dim html: html = strCode
-		Dim Match, Matches, K, TagName, arrAttr
-		
-		'单标签处理
-		EX.Pattern = Pattern
-		Set Matches = EX.Execute(html) '执行搜索
-		
-		'单标签支持
-		'0=标签名,1=标签属性
-		For Each Match in Matches
-			TagName = Trim(LCase(Match.SubMatches(0)))'0=标签名
-			arrAttr = Analysis_block_attr(Match.SubMatches(1))'1=标签属性
-			'设置输出属性
-			If IsArray(arrAttr) Then
-				For K = 0 To Ubound(arrAttr)
-					DIC_BLOCK_LOOP_ATTR(TagName & "." & arrAttr(K, 0)) = arrAttr(K, 1)
+	'设置节点属性
+	Private Function setLabelAttr(ByVal strPath,ByVal strVal)
+		Dim ary,node,i
+		ary = selectLabelNode(strPath)'选择标签节点
+		If IsArray(ary) = False Then Exit Function
+		Select Case LCase(ary(3))
+		Case ":body"
+			Set node = tplXML.selectNodes(ary(4) & "/body")
+				For i = 0 to node.Length - 1
+					node(i).childNodes(0).nodeValue = strVal
+				Next
+		Case ":empty",":null",":eof"
+			Set node = tplXML.selectNodes(ary(4) & "/null")
+				For i = 0 to node.Length - 1
+					node(i).childNodes(0).nodeValue = strVal
+				Next
+		Case ":html"
+			Set node = tplXML.selectNodes(ary(4) & "/html")
+				For i = 0 to node.Length - 1
+					node(i).childNodes(0).nodeValue = strVal
+				Next
+		Case Else
+			If Len(ary(2)) Then
+				Set node = tplXML.selectNodes(ary(4))
+				For i = 0 to node.Length - 1
+					node(i).setAttribute ary(2),strVal
 				Next
 			End If
-		Next
-		Set Matches = Nothing
-		'仅仅是解析标签不用返回值
+		End Select
 	End Function
 	
-	'// 模板html解析
-	Private Sub Analysis_Html()
-		Dim html: html = strTemplate		
-		'解析@单标签(属性支持,不返回值)
-		call Analysis_block_tag(html, "{(@\w+)(.*?)}")
-
-		html = Analysis_block_loop(html)	'先解析loop块
-		html = Analysis_block_if(html)		'解析if块
-		strTemplate = html 					'解析后的html 放回临时变量中	
-	End Sub
-	
-	'// 解析Xml模板
-	Private Sub Analysis_Xml()
-		Dim ifNode, loopNode
-		Dim I, J
-		Dim arrBlock(2)
+	'查询模板的缓存是否过期？缓存不存在=-1,超时>0,没有超时=0
+	Private Function cacheTimeOut(ByVal strName,ByVal intType,ByVal intCacheTime)
+		Dim intCache : intCache = -1
+		If intTemplateCacheTime < 1 Then 
+			cacheTimeOut = -1
+			Exit Function
+		End If
 		
-		'读取配置文件
-		XMLDOM.load(strCacheDir & "_.xml")
-		
-		Dim block_id, block_attr, block_tpl
-		Dim array_1(2), array_2, array_3, array_4
-		Set ifNode = XMLDOM.SelectSingleNode("//template/if")'if有多少个节点
-		For I = 0 To ifNode.ChildNodes.Length - 1		
-			block_id = ifNode.ChildNodes(I).GetAttribute("name") '节点name属性
-			Set block_attr = ifNode.ChildNodes(I).getElementsByTagName("attr").item(0)
-			array_1(0) = block_attr.GetAttribute("var")
-			array_1(1) = block_attr.GetAttribute("operator")
-			array_1(2) = block_attr.GetAttribute("value")			
-			'分支
-			Set block_tpl = ifNode.ChildNodes(I).getElementsByTagName("tpl")
-			ReDim array_2(block_tpl.Length - 1)
-			For J = 0 To block_tpl.Length - 1: array_2(J) = block_tpl.item(J).text: Next			
-			arrBlock(0) = block_id
-			arrBlock(1) = array_1
-			arrBlock(2) = array_2			
-			'把块变量保存到块的数据字典
-			DIC_BLOCK_IF(block_id) = arrBlock
-		Next
-		
-		'解析loop
-		'Redim arrBlock(2)
-		Dim element
-		Set loopNode = XMLDOM.SelectSingleNode("//template/loop")'loop有多少个节点
-		For I = 0 To loopNode.ChildNodes.Length - 1		
-			block_id = loopNode.ChildNodes(I).GetAttribute("name") '节点name属性
-			Set block_attr = loopNode.ChildNodes(I).getElementsByTagName("attr").item(0).attributes
-			ReDim array_3(block_attr.Length - 1, 1)
-			'遍历这个集合
-			J = 0
-			For Each element In block_attr
-				array_3(J,0) = element.nodename'属性名
-				array_3(J,1) = element.nodevalue'属性值
-				DIC_BLOCK_LOOP_ATTR(block_id & "." & array_3(J,0)) = array_3(J,1)'设置输出属性
-				J = J + 1
-			Next
-
-			'分支
-			Set block_tpl = loopNode.ChildNodes(I).getElementsByTagName("tpl").item(0)
-			array_4 = block_tpl.text
-			
-			arrBlock(0) = block_id
-			arrBlock(1) = array_3
-			arrBlock(2) = array_4
-			
-			'把块变量保存到块的数据字典
-			DIC_BLOCK_LOOP(block_id) = arrBlock
-			DIC_BLOCK_LOOP_LIST(block_id) = array_3'输出块内容，输出值是:块名，属性对象（数组结构）
-		Next
-	End Sub
-		
-	'// 解析
-	Private Sub Analysis()
-		If (intCacheflag = 1) Then
-			call Analysis_block_tag(strTemplate, "{(@\w+)(.*?)}")
-			call Analysis_Xml()
-		Else call Analysis_Html() End If
-	End Sub
-	'////////////////////////////////////////////////模板解析部分'////////////////////////////////////////////////
-	
-	'////////////////////////////////////////////////模板缓存部分'////////////////////////////////////////////////
-	
-	'// 把模板的属性配置缓存到xml文件，变量传递的是缓存位置
-	Private Function Analysis_SaveToXml(ByVal strPath)
-		Dim path: path = strPath		
-		Dim keys, items, I
-		Dim tplNode, blockNode, block_attr, block_code		
-		'创建一个节点对象
-		Set tplNode = XMLDOM.CreateElement("template")
-		'保存这个节点对象
-		XMLDOM.appendChild tplNode
-		XMLDOM.SelectSingleNode("//template").appendChild(XMLDOM.CreateElement("if"))'添加一个 if 节点
-		XMLDOM.SelectSingleNode("//template").appendChild(XMLDOM.CreateElement("loop"))'添加一个 loop 节点
-		
-		'// 解析if块到xml
-		For Each keys in DIC_BLOCK_IF
-			items = DIC_BLOCK_IF(keys)			
-			'添加一个ifblock节点
-			Set blockNode = XMLDOM.CreateElement("block")
-			blockNode.SetAttribute "name", keys
-			XMLDOM.SelectSingleNode("//template/if").appendChild(blockNode)			
-			'创建一个attr节点
-			XMLDOM.SelectSingleNode("//template/if/block[@name='"&keys&"']").appendChild(XMLDOM.CreateElement("attr"))			
-			'获取if 的attr属性	
-			block_attr = items(1)
-			'0=变量，1=运算符,2=对比值
-			For I = 0 To Ubound(block_attr)
-				'设置attr的属性
-				XMLDOM.SelectSingleNode("//template/if/block[@name='"&keys&"']/attr").SetAttribute "var", block_attr(0)'变量
-				XMLDOM.SelectSingleNode("//template/if/block[@name='"&keys&"']/attr").SetAttribute "operator", block_attr(1)'运算符
-				XMLDOM.SelectSingleNode("//template/if/block[@name='"&keys&"']/attr").SetAttribute "value", block_attr(2)'对比值
-			Next			
-			'获取block内容
-			block_code = items(2)
-			'创建block块
-			'创建一个block节点,对于if块，这里就是if分支的代码,传递过来的是split()
-			For I = 0 To Ubound(block_code)		
-				Set blockNode = XMLDOM.CreateElement("tpl")
-				blockNode.appendChild(XMLDOM.createCDATASection(block_code(I)))'给节点赋值,并且是用CDATA
-				XMLDOM.SelectSingleNode("//template/if/block[@name='"&keys&"']").appendChild(blockNode)		
-			Next
-		Next
-		
-		'// 解析loop块到xml
-		Dim arrAttr, oPI
-		For Each keys in DIC_BLOCK_LOOP
-			items = DIC_BLOCK_LOOP(keys)			
-			'添加一个loopblock节点
-			Set blockNode = XMLDOM.CreateElement("block")
-			blockNode.SetAttribute "name", keys
-			XMLDOM.SelectSingleNode("//template/loop").appendChild(blockNode)			
-			'创建一个attr节点
-			XMLDOM.SelectSingleNode("//template/loop/block[@name='"&keys&"']").appendChild(XMLDOM.CreateElement("attr"))			
-			'获取loop 的attr属性	
-			block_attr = items(1)
-			'数组对象，0=名,1=值
-			For I = 0 To Ubound(block_attr)
-				'设置attr的属性
-				XMLDOM.SelectSingleNode("//template/loop/block[@name='"&keys&"']/attr").SetAttribute block_attr(I, 0), block_attr(I, 1)'变量
-			Next			
-			'设置块
-			'获取block内容
-			block_code = items(2)
-			'创建block块
-			Set blockNode = XMLDOM.CreateElement("tpl")
-			blockNode.appendChild(XMLDOM.createCDATASection(block_code))'给节点赋值,并且是用CDATA
-			XMLDOM.SelectSingleNode("//template/loop/block[@name='"&keys&"']").appendChild(blockNode)		
-		Next		
-		'添加xml头部
-		Set oPI = XMLDOM.CreateProcessingInstruction("xml", "version=""1.0"" encoding="""&strCharset&"""")
-		XMLDOM.insertBefore oPI,XMLDOM.childNodes(0)		
-		'保存到xml文件
-		XMLDOM.save(path)		
-		'销毁
-		Set blockNode = Nothing
-		Set tplNode = Nothing		
-		Analysis_SaveToXml = System.Text.IIF((Err.Number = 0), True, False)
-		Err.Clear
+		Select Case intType
+		Case 1'1=内存缓存'检查内存缓存是否过期
+			intCache = appCacheTimeOut(strName,intCacheTime)
+		Case 2'2=文件缓存'文件缓存是否超时:>0超时 -1=文件不存在 0 = 没有超时
+			intCache = fileCacheTimeOut(strName,intCacheTime)
+		Case Else'>0超时
+			intCache = 1
+		End Select
+		cacheTimeOut = intCache
 	End Function
 	
-	'// 缓存模板
-	Private Sub FileCache()
-		'// 自动创建缓存文件目录
-		AutoCreateFolder(strSITEROOT & strCache_dir & strTemplate_dir)		
-		'加载之后就解析模板
-		call Analysis()		
-		'思路，模板将缓存到三个文件，html,xml,asp html是解析后的模板代码,xml保存块参数,asp是带有块内容的可以通过include直接运行的
-		'解析到xml
-		call Analysis_SaveToXml(strCacheDir&"_.xml")
-		'解析到html
-		call SaveToFile(strTemplate, strCacheDir&"_.html", strCharset)
+	'设置缓存
+	Private Sub setCacheValue(ByVal strName,ByVal appValue,ByVal intCacheType)
+		Select Case intCacheType
+		Case 1'1=内存缓存
+			setAppCacheValue strName,appValue
+		Case 2'2=文件缓存
+			saveFile strName,appValue,strCharset
+		End Select
 	End Sub
-
-	'////////////////////////////////////////////////缓存部分///////////////////////////////////////////////////
-
-	'// 缓存到内存
-	Public Property Get addCache(ByRef Key, ByRef Content, ByRef cacheTime)
-		'0=计数器/1=缓存时间/2=缓存内容/3=缓存有效期(有效期分钟)
-		Dim Items(3): Items(0) = 0: Items(1) = Now(): Items(3) = CInt(cacheTime)'有效期		
-		IF (IsObject(Content)) Then Set Items(2) = Content Else Items(2) = Content End If
-		Application.Unlock
-		Application(PREFIX & Key) = Items
-		Application.Lock
-	End Property
 	
-	'// 读取内存缓存取出变量 计数器++
-	Public Property Get getCache(ByRef Key)
-		Dim Items: Items = Application(PREFIX & Key)
-		getCache = Empty		
-		If (IsArray(Items)) Then
-			'判断是否过期了
-			If DateDiff("n", FormatDateTime(Items(1), 0), Now()) <= Items(3) Then
-				If (IsObject(Items)) Then Set getCache = Items(2) Else getCache = Items(2) End If
-				Application(PREFIX & Key)(0) = Application(PREFIX & Key)(0) + 1
+	'读取缓存
+	Private Function getCacheValue(ByVal strName,ByVal intCacheType)
+		Dim return
+		Select Case intCacheType
+		Case 1'1=内存缓存
+			'检查内存缓存是否过期
+			If IsObject(getAppCacheValue(strName)) Then
+			Set getCacheValue = getAppCacheValue(strName)
 			Else
-				'清空这个缓存
-				Application.Contents.Remove(PREFIX & Key)
+				getCacheValue = getAppCacheValue(strName)
 			End If
-		End If
-	End Property
+			Exit Function
+		Case 2'2=文件缓存
+			return = readFile(strName,strCharset)
+		Case Else
+			return = Empty
+		End Select
+		getCacheValue = return
+	End Function
 	
-	'// 得到计数器数值，可以知道某个缓存被读取了多少次(也可以检测缓存是否存在,=-1 就是不存在)
-	'// 如果缓存对象不存在就返回-1，如果存在就返回读取了多少次
-	Public Property Get numCache(ByRef Key)
-		Dim Items: Items = Application(PREFIX & Key)
-		If (IsArray(Items)) Then
-			numCache = Items(0)
-			If DateDiff("n", FormatDateTime(Items(1), 0), Now()) > Items(3) Then
-				Application.Contents.Remove(PREFIX & Key)
-				numCache = -1
-			End If
-		Else numCache = -1 End If
-	End Property
-	
-	'// 删除某个缓存
-	Public Property Get clearOneClear(ByRef Key)
-		Application.Contents.Remove(PREFIX & Key)
-	End Property
-	
-	'// 清空所有缓存
-	Public Property Get clearAllCache()
-		Dim Key, Keys, KeyLength, KeyIndex
-		For Each Key In Application.Contents
-			If (Left(Key, Len(PREFIX)) = PREFIX) Then Keys = Keys & VBNewLine & Key
-		Next		
-		Keys = Split(Keys, vbNewLine)
-		KeyLength = UBound(Keys)
-		Application.Unlock
-		For KeyIndex = 1 To KeyLength: Application.Contents.Remove(Keys(KeyIndex)): Next
-		Application.Lock
-	End Property
-
-	'////////////////////////////////////////////////缓存部分///////////////////////////////////////////////////
-	
-	'// 该方法用来加载并且解析模板
-	Public Property Get Load()
-		'用不同的方式来加载模板
-		If intCacheflag = 1 Then'使用文件缓存
-			Dim FileCacheTimeOut: FileCacheTimeOut = False
-			'// 如果有缓存就读取缓存，没有就加载模板后建立缓存
-			If System.IO.ExistsFile(strCacheDir & "_.html") Then'如果能读取到缓存
-				Dim Files : Set Files = FSO.GetFile(strCacheDir & "_.html")
-				'// 检测文件缓存是否过期,如果没有超时
-				If DateDiff("n", FormatDateTime(Files.DateLastModified, 0), Now()) < intCacheTplTime Then
-					strTemplate = LoadFile( strCacheDir & "_.html" , strCharset)
-				Else FileCacheTimeOut = True End If
-			Else FileCacheTimeOut = True End If
-			
-			'如果读取不到缓存或者缓存过期,设置成不需要缓存,直接重新加载
-			If FileCacheTimeOut Then
-				intCacheflag = 0'设置不缓存
-				call LoadTemplate()'加载模板
-				call FileCache()'解析的块内容缓存到xml文件中,下次就不用在解析了
-			End If
-		ElseIf intCacheflag = 2 Then'内存缓存
-			If Len(strTemplate_path) = 0 Then'如果不是文件模板
-				Response.Write("内存缓存仅对文件模板有效")
-			Else'开始读取内存
-				strTemplate = getCache(strTemplate_path)
-				If IsEmpty(strTemplate) Then'如果模板为空
-					call LoadTemplate()'加载模板
-					call addCache(strTemplate_path, strTemplate, intCacheTplTime)'缓存模板
-				End If
-			End If
-		Else'0=没缓存
-			call LoadTemplate()	'加载模板
-			clearAllCache()		'清空所有模板内存缓存
-		End If
-		'加载之后就解析模板
-		call Analysis()
-	End Property
-	
-	'// 输出模板
-	Public Property Get Display
-		call AssignTpl()'解析数据 替换输出
-		Response.Write(strTemplate)
-		'如果设置了整页面缓存,就缓存这个页面
-		If CBool(intCreateCachePage) Then call SaveToFile(strTemplate, strCachePage, strCharset)
-	End Property
-	
-	'// 获得缓存路径
-	Private Property Get strCacheDir
-		strCacheDir = strSITEROOT & strCache_dir & strTemplate_dir & Replace(Replace(strTemplate_path, "/", "-"), "\", "-")
-	End Property
-	
-	Private Property Get strMeta
-		strMeta = "<meta name=""copyright"" content=""Boyle.ACL"">"
-	End Property
-	
-	'// 清除所有模板缓存
-	Public Property Get clearFileCache
-		System.IO.DeleteFolder(strSITEROOT & strCache_dir)
-	End Property
-	
-	'// 获取输出结果
-	Public Property Get gethtml
-		call AssignTpl()
-		gethtml = strTemplate
-	End Property
-	
-	'// 提取所有块标签
-	Public Property Get getblock
-		Set getblock = DIC_BLOCK_LOOP_LIST
-	End Property
-	
-	'// 提取所有块标签的属性
-	Public Property Get getattr
-		Set getattr = DIC_BLOCK_LOOP_ATTR
-	End Property
-	
-	'//---------------------------定义类的输入属性-------------------------------//
-	'// 设置页面编码
-	Public Property Let setCharset(ByVal strVar)
-		strCharset = strVar
-	End Property
-	'// 设置网站目录
-	Public Property Let setRoot(ByVal strVar)
-		strSITEROOT = strVar
-	End Property
-	'// 设置模板目录
-	Public Property Let setTemplatedir(ByVal strVar)
-		strTemplate_dir = strVar
-	End Property
-	Public Property Let Root(ByVal strVar)
-		strTemplate_dir = strVar
-	End Property
-	Public Property Get Root()
-		Root = strTemplate_dir
-	End Property
-	'// 设置缓存目录
-	Public Property Let setCachedir(ByVal strVar)
-		strCache_dir = strVar
-	End Property
-	'// 设置模板文件路径，相对于模板目录
-	Public Property Let setPath(ByVal strVar)
-		strTemplate_path = strVar
-	End Property
-	'// 加载模板代码，如果不指定setPath,程序自动使用这里,使用这个之后模板缓存自动关闭
-	Public Property Let setHtml(ByVal strVar)
-		intCacheflag = 0'直接设置模板,缓存失效
-		strTemplate = strVar
-	End Property
-	'// 设置缓存开关,默认是关闭
-	Public Property Let setCacheType(ByVal intVar)
-		intCacheflag = intVar
-	End Property
-	'// 设置缓存时间,单位是分钟,默认是10分钟
-	Public Property Let setCacheTimeOut(ByVal strVar)
-		intCacheTplTime = strVar
-	End Property
-	'// 设置缓存页面文件名
-	Public Property Let setCachePageName(ByVal strVar)
-		strCachePageName = strVar
-	End Property
-	'// 设置模板绝对路径,默认是开启
-	'// 作用是输出的时候将模板相对路径替换成绝对路径,已经是绝对路径或者描点等不受影响
-	Public Property Let setAbsPath(ByVal intVar)
-		intAbsPath = intVar
-	End Property
-
-	'// 标签赋值
-	Public Property Let add(ByVal strTag, ByVal strVal)
-		Dim rs, I
-		'单标签赋值
-		strTag = LCase(strTag)
-		If Left(strTag, 1) = "@" Then
-			'如果是记录集赋值
-			If TypeName(strVal) = "Recordset" Then
-				Set rs = strVal
-				'字段设置
-				If rs.State And Not rs.Eof Then
-					'将字段值自动赋值到标签中
-					For I = 0 to rs.Fields.Count - 1
-						strTag = "@" & LCase(rs.Fields(I).name)
-						If DIC_BLOCK_ATTR.Exists(strTag) Then DIC_BLOCK_ATTR.Remove(strTag)
-						DIC_BLOCK_ATTR(strTag) = System.Text.IIF(IsNull(rs(I)), "", rs(I))
-					Next
-					'rs.Close()'程序后面还可以引用rs记录集，所以这里不用关闭，不过在外面的时候记得要关闭
-				End If
-				Set rs = Nothing: Exit Property
-			Else
-				'否则就是一个一个的单标签赋值
-				If DIC_BLOCK_ATTR.Exists(strTag) Then DIC_BLOCK_ATTR.Remove(strTag)
-				DIC_BLOCK_ATTR(strTag) = System.Text.IIF(IsNull(strVal), "", strVal)
-				Exit Property
-			End If
-		End If
+	''检查缓存是否过期：-1没有这个缓存，>0过期时间，=0没有过期
+	Private Function appCacheTimeOut(ByVal strName,ByVal intTime)
+		Dim cacheData
+			cacheData = Application(strName)
+		If Not IsArray(cacheData)   Then appCacheTimeOut = -1 : Exit Function End If
+		If Not IsDate(cacheData(1)) Then appCacheTimeOut = -1 : Exit Function End If
 		
-		'循环体赋值,传递的是Rs
-		If TypeName(strVal) = "Recordset" Then
-			Set rs = strVal
-			'字段设置
-			If rs.State And Not rs.eof Then
-				For I=0 to rs.Fields.count-1 
-					RS_FIELD(strTag&"."&LCase(rs.Fields(I).name)) = I
-				Next
-				'赋值到循环块列表中
-				If Not rs.Eof Then
-					If DIC_BLOCK_LOOP_VAL.Exists(strTag) Then DIC_BLOCK_LOOP_VAL.Remove(strTag)
-					DIC_BLOCK_LOOP_VAL(strTag) = rs.GetRows'赋值到循环块列表中
-				End If
-				'rs.Close()'程序后面还可以引用rs记录集，所以这里不用关闭，不过在外面的时候记得要关闭
+		appCacheTimeOut = DateDiff(strDateDiffTimeInterval,CDate(cacheData(1)),Now())
+		If appCacheTimeOut < CInt(intTime) Then '如果没有超时
+			appCacheTimeOut = 0
+		Else
+			Application.Lock()
+			Application.Contents.Remove(strName)
+			Application.UnLock()
+		End If
+	End Function
+	
+	'文件缓存是否超时:>0超时 -1=文件不存在 0 = 没有超时
+	Private Function fileCacheTimeOut(ByVal strFilePath,ByVal intTime)
+		strFilePath = getMapPath(strFilePath)
+		'如果有缓存就读取缓存，没有就加载模板后建立缓存
+		If objFSO.FileExists(strFilePath) Then'如果能读取到文件
+			Dim Files : Set Files = objFSO.GetFile(strFilePath)
+			'检测文件缓存是否过期
+			fileCacheTimeOut = DateDiff(strDateDiffTimeInterval, FormatDateTime(Files.DateLastModified,0),Now())
+			If fileCacheTimeOut < Cint(intTime) Then'如果没有超时
+				fileCacheTimeOut = 0
 			End If
-			Set rs = Nothing
-			Exit Property
-		ElseIf TypeName(strVal) = "Variant()" Then'如果传递的是getrows
-			If DIC_BLOCK_LOOP_VAL.Exists(strTag) Then DIC_BLOCK_LOOP_VAL.Remove(strTag)
-		DIC_BLOCK_LOOP_VAL(strTag) = strVal
-		ElseIf TypeName(strVal) = "String" Then'如果循环体直接赋值String，整个循环体当但标签处理
-			If DIC_BLOCK_LOOP_VAL.Exists(strTag) Then DIC_BLOCK_LOOP_VAL.Remove(strTag)
-			DIC_BLOCK_LOOP_VAL(strTag) = strVal
+			Set Files = Nothing
+		Else
+			fileCacheTimeOut = -1
 		End If
-	End Property
-	Public Property Let Assign(ByVal strTag, ByVal strVal)
-		add(strTag) = strVal
-	End Property
+	End Function
+	
+	'设置内存缓存设置缓存=================
+	Private Sub setApplication(ByVal appName,ByVal appValue)
+		Application.Lock()
+		If IsObject(appValue) Then
+			Set Application(appName) = appValue 
+		Else
+			Application(appName) = appValue 
+		End If
+		Application.UnLock()
+	End Sub
+	
+	'设置缓存=================
+	Private Sub setAppCacheValue(ByVal strCacheName,ByVal cacheValue)
+		Dim cacheData(3)
+		If IsObject(cacheValue) Then
+			Set cacheData(0) = cacheValue
+		Else
+			cacheData(0) = cacheValue
+		End If
+		cacheData(1) = Now()
+		cacheData(2) = 0'计数器
+		setApplication strCacheName,cacheData
+	End Sub 
+	
+	'获取缓存,值计数器++
+	Private Function getAppCacheValue(ByVal strCacheName) 
+		Dim cacheData
+		cacheData = Application(strCacheName) 
+		If IsArray(cacheData) Then
+			If IsObject(cacheData(0)) Then
+				Set getAppCacheValue = cacheData(0)
+			Else
+				getAppCacheValue = cacheData(0)
+			End If
+			cacheData(1) = Now()
+			cacheData(2) = cacheData(2)+1'计数器
+			setApplication strCacheName,cacheData
+		Else
+			getAppCacheValue = Empty
+		End If
+	End Function
 
-	'// 绑定字段
-	Public Property Let bindField(ByVal strTag, ByVal strVal)
-		If TypeName(strVal) = "Fields" Then
-			Dim rs, I
-			Set rs = strVal
-			'字段设置
-			For I = 0 to rs.Count - 1 
-				RS_FIELD(strTag&"."&LCase(rs(I).name)) = I
-			Next
-			Set rs = Nothing
-			Exit Property
+	'获取缓存计数器数值，-1 不存在
+	Private Function getAppCacheNum(ByVal strCacheName) 
+		Dim cacheData: cacheData = Application(strCacheName) 
+		If IsArray(cacheData) Then
+			getAppCacheNum = cacheData(2)
+		Else
+			getAppCacheNum = -1
 		End If
-	End Property
+	End Function
 	
-	Public Property Let CachePageTimeout(ByVal strVal)
-		intCachePageTimeout = Int(strVal)
-		If CBool(intCachePageTimeout) Then
-			Dim CachePagePath: CachePagePath = "pagecache/"			
-			call AutoCreateFolder(strSITEROOT & strCache_dir & CachePagePath)'自动生成存放目录			
-			strCachePage = strSITEROOT & strCache_dir & CachePagePath & strCachePageName
-			If System.IO.ExistsFile(strCachePage) Then'如果没有缓存
-				Dim Files: Set Files = FSO.GetFile(strCachePage)
-				'// 判断缓存是否超时
-				If DateDiff("n", FormatDateTime(Files.DateLastModified, 0), Now()) < intCachePageTimeout Then
-					'// 如果没有超时,读取缓存,至于缓存是用server.transfer还是fso,区别在于是否需要执行页面中的程序
-					Server.Transfer(strCache_dir & CachePagePath & strCachePageName)
-					'Response.Write(LoadFile(strCachePage, strCharset))
-					Response.End()
-				Else intCreateCachePage = True End If
-			Else intCreateCachePage = True End If
+	'抛出错误
+	Private Sub errRaise(ByVal strVal)
+		If intDebugModule Then'如果开启错误提示
+			Response.Write(strVal)
+			Response.End()
 		End If
-	End Property
-	
-	'// 生成静态页面
-	Public Property Let OutPutPage(ByVal strPath, ByVal strVar)
-		Dim strOutputPath: strOutputPath = strPath & "/" & System.Text.IIF(Len(strVar), strVar, "index.html")
-		If AutoCreateFolder(strPath) Then
-			call AssignTpl()'数据替换输出
-			call SaveToFile(strTemplate, strOutputPath, strCharset)
-		End If
-	End Property
-	
-	'// 设置页面并载入
-	Public Sub File(ByVal strVar)
-		strTemplate_path = strVar
-		Load()
 	End Sub
 End Class
 %>
