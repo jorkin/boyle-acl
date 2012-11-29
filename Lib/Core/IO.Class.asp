@@ -1,4 +1,4 @@
-<!--#include file="./class_io_cas.asp"-->
+<!--#include file="./IO.CAS.class.asp"-->
 <%
 '// --------------------------------------------------------------------------- //
 '// Project Name		: Boyle.ACL												//
@@ -166,27 +166,28 @@ Class Cls_IO
 		If Not System.Text.IsEmptyAndNull(blFile) Then
 			blFile = FormatFilePath(blFile)
 			Dim blFolder: blFolder = Directory(blFile, "\")
-			If Not ExistsFolder(blFolder) Then
-				'// 如果文件夹不存在，则新建文件夹。新建成功进行文件保存操作，新建失败，则不进行文件保存操作并返回错误
-				If CreateFolder(blFolder) Then
-					On Error Resume Next
-					Dim blStream: Set blStream = Server.CreateObject("ADODB.Stream")
-					With blStream
-						.Open
-						.Charset = PrCharset
-						.Position = blStream.Size
-						.WriteText = blContent
-						.SaveToFile blFile, 2
-						.Close
-					End With
-					If Err Then
-						System.Error.Message = "（"& blFile &"）"
-						System.Error.Raise 52
-					End If
-					Err.Clear
-					Save = True: Set blStream = Nothing
-				Else Save = False End If
-			End If
+
+			'// 如果文件夹不存在，则创建新文件夹
+			If Not ExistsFolder(blFolder) Then CreateFolder(blFolder)
+			'// 只有在文件夹存在时，对文件进行保存
+			If ExistsFolder(blFolder) Then
+				On Error Resume Next
+				Dim blStream: Set blStream = Server.CreateObject("ADODB.Stream")
+				With blStream
+					.Open
+					.Charset = PrCharset
+					.Position = blStream.Size
+					.WriteText = blContent
+					.SaveToFile blFile, 2
+					.Close
+				End With
+				If Err Then
+					System.Error.Message = "（"& blFile &"）"
+					System.Error.Raise 52
+				End If
+				Err.Clear
+				Save = True: Set blStream = Nothing
+			Else Save = False End If
 		Else Save = False End If
 	End Function
 	
@@ -337,7 +338,7 @@ Class Cls_IO
 
 	'/**
 	' * @功能说明: 检查文件是否存在
-	' * @参数说明: - str [string]: 检测对象的路径
+	' * @参数说明: - blFile [string]: 检测对象的路径
 	' * @返回值:   - [bool] 布尔值
 	' */
 	Public Function ExistsFile(ByVal blFile)
@@ -376,7 +377,6 @@ Class Cls_IO
 
 	'// 取文件夹绝对路径
 	Private Function absPath(ByVal p)
-		Dim pt
 		If System.Text.IsEmptyAndNull(p) Then absPath = "" : Exit Function
 		If Mid(p, 2, 1) <> ":" Then
 			If isWildcards(p) Then
