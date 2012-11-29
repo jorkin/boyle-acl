@@ -244,7 +244,7 @@ Class Boyle
 	'// 初始化系统
 	Public Sub Run()
 		Dim C: Set C = Array.New
-		C.Hash = APP_PARAM
+		C.Hash = UCase(APP_PARAM)
 		
 		'// 配置数据库信息，系统默认使用ACCESS数据库
 		If Not Text.IsEmptyAndNull(C("DB.SOURCE")) Then
