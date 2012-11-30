@@ -354,13 +354,13 @@ Class Cls_Text
 	' *    		   - blParam2 [string] : 替换成的字符串
 	' * @返回值:   - [string] : 字符串
 	' */
-	Public Function ReplaceX(ByVal blExpression, ByVal blParam1, ByVal blParam2)
+	Public Function ReplaceX(ByVal blParam1, ByVal blExpression, ByVal blParam2)
 		If Not Me.IsEmptyAndNull(blParam1) Then
 			RegExpX.Pattern = blExpression
 			ReplaceX = RegExpX.Replace(blParam1, blParam2)
 		Else ReplaceX = "" End If
 	End Function
-	Public Function ReplaceXMultiline(ByVal blExpression, ByVal blParam1, ByVal blParam2)
+	Public Function ReplaceXMultiline(ByVal blParam1, ByVal blExpression, ByVal blParam2)
 		If Not Me.IsEmptyAndNull(blParam1) Then
 			RegExpX.Multiline = True
 			RegExpX.Pattern = blExpression
@@ -585,7 +585,7 @@ Class Cls_Text
 	' */
 	Public Function RemoveHtml(ByVal blParam)
 		If Not Me.IsEmptyAndNull(blParam) Then
-			blParam = ReplaceX("<[^>]+>|</[^>]+>", blParam, "")
+			blParam = ReplaceX(blParam, "<[^>]+>|</[^>]+>", "")
 			blParam = Replace(blParam, "<", "&lt;")
 			blParam = Replace(blParam, ">", "&gt;")
 			RemoveHtml = Trim(blParam)
@@ -599,7 +599,7 @@ Class Cls_Text
 	' */
 	Public Function RemoveSpace(ByVal blParam)
 		If Not Me.IsEmptyAndNull(blParam) Then
-			blParam = ReplaceX("[\n\s*\r|]", blParam, "")
+			blParam = ReplaceX(blParam, "[\n\s*\r|]", "")
 			RemoveSpace = Trim(blParam)
 		Else RemoveSpace = "" End If
 	End Function
@@ -843,17 +843,17 @@ Class Cls_Text
 		If Me.Test(blString, blRule) Then
 			Set blMatches = Me.MatchX(blString, blRule)
 			For Each blMatch In blMatches
-				blKind = Me.ReplaceX(blRule, blMatch.Value, "$2")
+				blKind = Me.ReplaceX(blMatch.Value, blRule, "$2")
 				blContent = "{" & blIndex & ":" & blKind & "}"
 				Select Case Left(blKind, 1)
 					Case "N":
 						If isNumeric(blValue) Then
 							Dim blFormat, blGroup, blParens, blPercent, blDecimal
-							blFormat = Me.ReplaceX("N([,\(%])?(\d+)?", blKind, "$1")
+							blFormat = Me.ReplaceX(blKind, "N([,\(%])?(\d+)?", "$1")
 							If blFormat = "," Then blGroup = -1
 							If blFormat = "(" Then blParens = -1
 							If blFormat = "%" Then blPercent = -1
-							blDecimal = Me.ReplaceX("N([,\(%])?(\d+)?", blKind, "$2")
+							blDecimal = Me.ReplaceX(blKind, "N([,\(%])?(\d+)?", "$2")
 							'// 当N后面不跟参数时，直接输出目标原数值
 							If Me.IsEmptyAndNull(blFormat) And Me.IsEmptyAndNull(blDecimal) Then
 								blString = Replace(blString, blContent, blValue, 1, -1, 1)

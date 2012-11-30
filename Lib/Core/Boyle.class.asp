@@ -186,7 +186,7 @@ Class Boyle
 	End Function
 	
 	'// 功能说明：接收GET/POST方式所传输的数据
-	Public Function R(ByVal blParam, ByVal blType)
+	Public Function [Get](ByVal blParam, ByVal blType)
 		Dim blContent
 		Select Case UCase(blType)
 			Case "0", "INT":	'// 当目标标签为空时，值为0
@@ -208,7 +208,7 @@ Class Boyle
 				End If
 			Case Else blContent = blParam
 		End Select
-		R = Trim(blContent)
+		[Get] = Trim(blContent)
 	End Function
 	
 	'// 功能说明：以各种方式输出数据

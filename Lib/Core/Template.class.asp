@@ -1,6 +1,6 @@
 <%
 Class Cls_Template
-	Private objFSO, objSTREAM, objEXP, tplXML, adoConn
+	Private objFSO, objSTREAM, objEXP, tplXML
 	Private strRootPath, strCharset, strTagHead, strRootXMLNode, strBlockDataAtr
 	Private intDebugModule
 	Private strTemplatePath,  strTemplateFilePath
@@ -21,10 +21,10 @@ Class Cls_Template
 		strBlockDataAtr = "name"        	'块赋值辅助的属性
 		intDebugModule  = 0             	'调试模式，默认是0
 		
-		strDateDiffTimeInterval = "s"       '表示相隔时间的类型：d日 h时 n分钟 s秒
-		intTemplateCacheType    = 0         '缓存类型
-		intTemplateCacheTime    = 10        '缓存时间
-		strTemplateCachePath    = "" '缓存目录
+		strDateDiffTimeInterval = "s"       		'表示相隔时间的类型：d日 h时 n分钟 s秒
+		intTemplateCacheType    = 0         		'缓存类型
+		intTemplateCacheTime    = 10        		'缓存时间
+		strTemplateCachePath    = "runtime/cache" 	'缓存目录
 		
 		'设置使用到的对象
 		Set objFSO = Server.CreateObject("Scripting.FileSystemObject")
@@ -44,7 +44,6 @@ Class Cls_Template
 		Set objSTREAM = Nothing
 		Set tplXML    = Nothing
 		Set dicLabel  = Nothing
-		If IsObject(adoConn) Then Set adoConn = Nothing
 	End Sub
 	
 	'//设置站点根目录路径
@@ -79,10 +78,7 @@ Class Cls_Template
 		strTemplateFilePath = getMapPath(strRootPath & strTemplatePath & strTemplatePagePath)
 		
 		'文件缓存路径
-		strFileCachePath = strRootPath & strTemplateCachePath & strTemplatePath 
-		strFileCachePath = getMapPath(expReplace(strFileCachePath,"(\.|\\|\/)+","/"))
-		call autoCreateFolder(strFileCachePath)'自动生成路径
-		strFileCachePath = expReplace(strFileCachePath &"/"& strTemplateCacheName,"(\.|\\|\/)+","/") & "_" & strTemplatePagePath
+		strFileCachePath = strTemplateCacheName & "/" & Replace(strTemplatePagePath, "."&System.IO.FileExts(strTemplatePagePath), "")
 		
 		'内存缓存的名称
 		strAppCacheName  = strTemplateCacheName & "_" & intTemplateCacheTime & "_" & intTemplateCacheType & "_" & strTemplatePagePath
@@ -118,22 +114,12 @@ Class Cls_Template
 		If intTemplateCacheTime <= 0 Then
 			intTemplateCacheType = 0
 		End If
+		System.Cache.SavePath = APP_PATH&strTemplateCachePath'//设置文件缓存的保存路径，这里用到全局变量APP_PATH，即项目路径
 	End Property
 
 	'//设置节点属性
 	Public Property Let setAttr(ByVal strPath,ByVal strVal)
 		setLabelAttr LCase(strPath),strVal
-	End Property
-	
-	'//设置数据库连接
-	Public Property Let Conn(ByVal objVal)
-		On Error Resume Next
-		Set adoConn = objVal
-		If adoConn.State = 0 Then adoConn.Open()
-		If Err.Number <> 0 Then
-			Err.Clear : Set adoConn = Nothing
-			call errRaise("数据库打开出错,请检查数据库连接")
-		End If
 	End Property
 	
 	'赋值
@@ -178,7 +164,7 @@ Class Cls_Template
 	End Property
 
 	'生成静态页面(路径,页面名称)
-	Public Property Let create(ByVal param)
+	Public Property Let Create(ByVal param)
 		Dim strFilePath,strContents
 		If TypeName(param) = "Variant()" Then'传递数组
 			Select Case Ubound(param)
@@ -262,28 +248,30 @@ Class Cls_Template
 	Public Property Get getHtml
 		Select Case intTemplateCacheType
 		Case 3'结果内存缓存
-			Dim cacheName : cacheName = strAppCacheName & "getHtml"
-			If cacheTimeOut(cacheName,1,intTemplateCacheTime) = 0 Then
-				strResultHtml = getCacheValue(cacheName,1)
+			Dim cacheName: cacheName = strAppCacheName & "getHtml"
+			System.Cache.Item(cacheName).Expires = intTemplateCacheTime/60
+			If System.Cache.Item(cacheName).Ready Then
+				strResultHtml = System.Cache.Item(cacheName)
 			Else
 				call analysisTemplate()
-				setCacheValue cacheName,strResultHtml,1
+				System.Cache.Item(cacheName) = strResultHtml
+				System.Cache.Item(cacheName).SaveApp
 			End If
 		Case 4'结果文件缓存
-			'检查文件是否存在:缓存不存在=-1,超时>0,没有超时=0
-			If cacheTimeOut(strFileCachePath & ".html",2,intTemplateCacheTime) = 0 Then
-				strResultHtml = readFile(getMapPath(strFileCachePath & ".html") , strCharset)
+			System.Cache.Item(strFileCachePath).Expires = intTemplateCacheTime/60
+			If System.Cache.Item(strFileCachePath).Ready Then
+				strResultHtml = System.Cache.Item(strFileCachePath)
 			Else
 				call analysisTemplate()
-				setCacheValue getMapPath(strFileCachePath & ".html"),strResultHtml,2
+				System.Cache.Item(strFileCachePath) = strResultHtml
+				System.Cache.Item(strFileCachePath).Save
 			End If
 		Case Else
 			call analysisTemplate()
 		End Select
 		
 		'返回执行时间
-		strResultHtml = expReplace(strResultHtml,"\{runtime\s*\/?\}|(\<\!--runtime--\>)(.*?)\1" , "<"&"!--runtime-->"&System.End&"<"&"!--runtime-->" )
-		
+		strResultHtml = System.Text.ReplaceX(strResultHtml, "\{runtime\s*\/?\}|(\<\!--runtime--\>)(.*?)\1", "<"&"!--runtime-->"&System.End&"<"&"!--runtime-->" )
 		getHtml = strResultHtml
 	End Property
 	
@@ -377,36 +365,21 @@ Class Cls_Template
 	
 	'//FSO 保存文件
 	Private Function saveFile(ByVal strPath,ByVal strContent,ByVal strCharset)
-		Dim Matches : strPath = expReplace(strPath,"(\/|\\)+","\")
-		Set Matches = expMatch(strPath,"(.*?)([^\\]*\.\w{2,5})?$")'分离文件路径和文件名
+		Dim Matches : strPath = System.Text.ReplaceX(strPath,"(\/|\\)+","\")
+		Set Matches = System.Text.MatchX(strPath,"(.*?)([^\\]*\.\w{2,5})?$")'分离文件路径和文件名
 		
 		If Matches.Count = 2 Then
 			Dim strFilePath, strFileName, strCreatePath
 			strFilePath = Matches(0).SubMatches(0) '文件路径
 			strFileName = Matches(0).SubMatches(1) '文件名
 			
-			strCreatePath = expReplace( strFilePath & "\" & IIF(Len(strFileName),strFileName,"index.html") ,"(\/|\\)+","\")
+			strCreatePath = System.Text.ReplaceX( strFilePath & "\" & System.Text.IIF(Len(strFileName),strFileName,"index.html") ,"(\/|\\)+","\")
 			
 			'自动创建目录,生成页面
 			System.IO.Save strCreatePath, strContent
 		Else
 			call errRaise("路径不合法，请检查路径")
 		End If
-	End Function
-	
-	'//FSO自动生成文件夹路径
-	Private Function autoCreateFolder(ByVal strPath)
-		autoCreateFolder = System.IO.CreateFolder(strPath)
-	End Function
-
-	'三元表达式
-	Private Function IIF(ByVal a, ByVal b, ByVal c)
-		If a Then IIF = b Else IIF = c End IF
-	End Function
-	
-	'在 a中找到 b的match,如果没有找到返回Empty
-	Private Function expMatch(ByVal a, ByVal b)
-		objEXP.Pattern = b : Set expMatch = objEXP.Execute(a)
 	End Function
 	
 	'转义正则字符
@@ -419,25 +392,17 @@ Class Cls_Template
 		expEncode = sText
 	End Function
 
-	'正则替换expReplace
-	Private Function expReplace(ByVal a,ByVal b,ByVal c)
-		objEXP.IgnoreCase = True
-		objEXP.Global = True
-		objEXP.Pattern = b
-		expReplace = objEXP.Replace(a, c)
-	End Function
-
 	'ASP的正则expSplit
 	Private Function expSplit(ByVal a,ByVal b)
 		Dim Match, SplitStr : SplitStr = a
 		Dim Sp : Sp = "#Boyle.ACL@"
-			For Each Match in expMatch(a,b)
+			For Each Match in System.Text.MatchX(a,b)
 				SplitStr = Replace( SplitStr , Match.value , Sp ,1,-1,0)
 			Next
 		expSplit = Split( SplitStr, Sp)
 	End Function
 	
-	'getMapPath'判断路径是否是绝对路径，不是的话返回绝对路径
+	'判断路径是否是绝对路径，不是的话返回绝对路径
 	Private Function getMapPath(ByVal strPath)
 		getMapPath = System.IO.FormatFilePath(strPath)
 	End Function
@@ -465,31 +430,46 @@ Class Cls_Template
 		Case 0'不缓存
 			Call load()
 		Case 1,3'1=模板内存缓存,3=结果内存缓存
-			If cacheTimeOut(strAppCacheName,1,intTemplateCacheTime) = 0 Then
-				strTemplateHtml = getCacheValue(strAppCacheName,1)
-				Set tplXML = getCacheValue("tplXML",1)
-			Else
-				load()
-				setCacheValue strAppCacheName,strTemplateHtml,1
-				setCacheValue "tplXML",tplXML,1
-			End If
-		Case 2,4'2=模板文件缓存,4=结果文件缓存
-			'检查文件是否存在:缓存不存在=-1,超时>0,没有超时=0
-			If cacheTimeOut(strFileCachePath & ".xml",2,intTemplateCacheTime) = 0 Then
-			Set tplXML = XMLDOM("")
-				tplXML.load(strFileCachePath & ".xml")
+			Dim TplHtmlCache, TplXmlCache
+			TplHtmlCache = strAppCacheName & ".TPLHTML.APP"
+			TplXmlCache = strAppCacheName & ".TPLXML.APP"
+			System.Cache.Item(TplHtmlCache).Expires = intTemplateCacheTime/60
+			System.Cache.Item(TplXmlCache).Expires = intTemplateCacheTime/60
+			If System.Cache.Item(TplHtmlCache).Ready Then
+				strTemplateHtml = System.Cache.Item(TplHtmlCache)
+				Set tplXML = XmlDom("")
+				tplXML.loadXML(System.Cache.Item(TplXmlCache))
 			Else
 				Call load()
-				tplXML.Save(strFileCachePath & ".xml")
+				System.Cache.Item(TplHtmlCaChe) = strTemplateHtml
+				System.Cache.Item(TplXmlCache) = TplXml.xml
+				System.Cache.SaveAppAll
 			End If
-		Case 3,4'3=结果内存缓存,'4=结果文件缓存
-			Call getHtml()
+		Case 2,4'2=模板文件缓存,4=结果文件缓存
+			Dim CacheName : CacheName = strFileCachePath & ".xml"
+			System.Cache.Item(CacheName).Expires = intTemplateCacheTime/60
+			If System.Cache.Item(CacheName).Ready Then
+				Set tplXML = XmlDom("")
+				tplXML.loadXML(System.Cache.Item(CacheName))
+				strTemplateHtml = tplXML.SelectSingleNode(strRootXMLNode).LastChild.data
+			Else
+				Call load()
+				System.Cache.Item(CacheName) = tplXML.xml
+				System.Cache.Item(CacheName).Save
+			End If
+		'Case 3,4'3=结果内存缓存,'4=结果文件缓存
+		'	Call getHtml()
 		End Select
 	End Sub
 	
 	Private Sub load()'读取模板文件
 		strTemplateHtml = loadInclude(readFile(strTemplateFilePath,strCharset),strTemplateFilePath)'
-		strTemplateHtml = expReplace(expReplace(strTemplateHtml,"\<\!\-\-\s*\{","{"),"\}\s*\-\-\>","}")
+		strTemplateHtml = System.Text.ReplaceX(System.Text.ReplaceX(strTemplateHtml,"\<\!\-\-\s*\{","{"),"\}\s*\-\-\>","}")
+
+		'// 使用绝对路径
+		'strTemplateHtml = System.Text.System.Text.IIF(CBool(i_absPath), AbsPath(strTemplateHtml), strTemplateHtml)
+		strTemplateHtml = AbsPath(strTemplateHtml)
+
 		'编译模板，并且用XML存储模板标签节点
 		compileTemplate Array(strTemplateHtml,strTagHead),tplXML.selectSingleNode(strRootXMLNode)
 		'保存模板到XML
@@ -500,7 +480,7 @@ Class Cls_Template
 	Private Function loadInclude(ByVal strHtml,ByVal strPath)
 		Dim incPath,html : html = strHtml
 		Dim Match,Matches
-		For Each Match in expMatch(strHtml,"{include\s*([\('""])?\s*(.*?)\1}")
+		For Each Match in System.Text.MatchX(strHtml,"{include\s*([\('""])?\s*(.*?)\1}")
 			incPath = getMapPath(strRootPath & strTemplatePath & Match.SubMatches(1))
 			If strPath <> incPath Then
 				html = Replace(html,Match.value,loadInclude(readFile(incPath,strCharset),incPath),1,-1,0)
@@ -519,14 +499,14 @@ Class Cls_Template
 		Dim arrayTags(10) '定义一个数组，把模板的标签参数保存调用
 			strPattern = "\{("&expEncode(LCase(aryVal(1)))&")([a-zA-Z0-9:]+)?\s*?([\s\S]*?)\/?\}[\n|\s|\t]*?(?:[\n]*?([\s\S]*?)[\n|\s|\t]*?(\{/\1\2\}))?"
 		'解析标签
-		For Each Match in expMatch(aryVal(0),strPattern)
+		For Each Match in System.Text.MatchX(aryVal(0),strPattern)
 			arrayTags(0) = Match.SubMatches(0) ' 标签头
 			arrayTags(1) = Match.SubMatches(1) ' 标签名称
 			arrayTags(2) = Match.SubMatches(2) ' 标签属性
 			arrayTags(3) = Match.SubMatches(3) ' 闭合部分的内容
 			arrayTags(4) = ""                  ' empty标签
 			arrayTags(5) = arrayTags(3)        ' 仅循环体部分,不包含empty
-			arrayTags(6) = IIF(Len(Match.SubMatches(4))+Len(Match.SubMatches(3)),1,0) ' 如果是闭合标签，并且有模板内容，闭合标签才有效
+			arrayTags(6) = System.Text.IIF(Len(Match.SubMatches(4))+Len(Match.SubMatches(3)),1,0) ' 如果是闭合标签，并且有模板内容，闭合标签才有效
 			arrayTags(7) = Match.Value '模板内容
 
 			'如果是有结束标签,表示这个是一个闭合标签
@@ -534,7 +514,7 @@ Class Cls_Template
 			Dim closeTags : closeTags = getCloseBlock(Array(arrayTags(3),arrayTags(1)))
 				arrayTags(4) = closeTags(0)    ' empty标签
 				arrayTags(5) = closeTags(1)    ' 仅循环体部分,不包含empty
-				arrayTags(8) = expReplace( getBlockAttr(nodeDOM)("nodepath") & "/" & arrayTags(1),"^\/","")'节点路径
+				arrayTags(8) = System.Text.ReplaceX( getBlockAttr(nodeDOM)("nodepath") & "/" & arrayTags(1),"^\/","")'节点路径
 			End If
 			'创建节点
 			nodeDOM.appendChild(getTemplateNode(arrayTags))
@@ -582,7 +562,7 @@ Class Cls_Template
 						dicData("data") = dicLabel(dicData("path"))
 					End If
 				End If
-				
+
 				'如果已经给块赋值
 				If dicData.Exists("data") Then
 					'检测块值的类型
@@ -591,7 +571,7 @@ Class Cls_Template
 						'On Error Resume Next
 						Set rs = dicData("data")
 						dicData("dtype") = 1'RS记录集
-					Case "Variant()"'如果传递的是数组
+					Case "Variant()"'如果传递的是数组						
 						If Ubound(dicData("data")) = 1 Then
 							Select Case TypeName(dicData("data")(0))
 							Case "Recordset"'数据集
@@ -601,10 +581,10 @@ Class Cls_Template
 							Case "Variant()"'数组
 								Dim arycount : arycount = getArrayDimension(dicData("data")(0))
 								If arycount = 1 Then'如果是一维数组
-								Set dicRS = rsToDic(dicData("data")(0))
-								dicData("dtype") = 2'数组转成了字典
-								aryField = expSplit(dicData("data")(1),"\s*,\s*")'字段序列
-								If TypeName(aryField)="Variant()" Then Set dicRS = redimField(dicRS,aryField)'重命名字段
+									Set dicRS = rsToDic(dicData("data")(0))
+									dicData("dtype") = 2'数组转成了字典
+									aryField = expSplit(dicData("data")(1),"\s*,\s*")'字段序列
+									If TypeName(aryField)="Variant()" Then Set dicRS = redimField(dicRS,aryField)'重命名字段
 								ElseIf arycount = 2 Then'二维数组
 									rs = dicData("data")(0)
 									aryField = expSplit(dicData("data")(1),"\s*,\s*")'字段序列
@@ -616,7 +596,7 @@ Class Cls_Template
 						End If
 					Case "Dictionary"'如果传递的是字典
 						Set dicRS = dicData("data")
-							dicData("dtype") = 2'字典
+						dicData("dtype") = 2'字典
 					Case Else'其他数据类型，主要是 字符、数字等可以直接输出的类型
 						dicData("dtype") = 0
 					End Select
@@ -625,7 +605,7 @@ Class Cls_Template
 					dicData("sql") = returnLabelValues(aryLabel(5)("sql"),strHead,objDIC,0)'获取Sql
 					dicData("conn") = returnLabelValues(aryLabel(5)("conn"),strHead,objDIC,0)'获取CONN
 					On Error Resume Next
-					Set conn = adoConn
+					Set conn = System.Data.Connection'// 获取数据库连接对象
 					If Len(dicData("conn"))>2 Then
 					Set conn = Eval(dicData("conn"))
 					End If
@@ -638,7 +618,7 @@ Class Cls_Template
 				Dim k : k = 0
 				dicData("loohtm") = ""
 				dicData("taglab") = aryLabel(0)&"."
-				dicData("dr") = expReplace(aryLabel(5)("dr"),"\s*([a-zA-Z0-9]+)\(([a-zA-Z0-9]+)\)\s*","$1(dicRS)")'数据渲染
+				dicData("dr") = System.Text.ReplaceX(aryLabel(5)("dr"),"\s*([a-zA-Z0-9]+)\(([a-zA-Z0-9]+)\)\s*","$1(dicRS)")'数据渲染
 				Select Case dicData("dtype")
 				Case 0 '字符串等
 					returnHtml = dicData("data")
@@ -703,7 +683,7 @@ Class Cls_Template
 			Case "dateformat":'日期格式化
 				return = dateFormat(return,val)
 			Case "len","length"
-				return = IIF(Len(val),Left(return,val),return)
+				return = System.Text.IIF(Len(val),Left(return,val),return)
 			Case "return"
 				Dim str,i : val = Split(LCase(val),",")
 				For i=0 To Ubound(val)
@@ -719,11 +699,11 @@ Class Cls_Template
 						return = Replace(return, ">" , Chr(62))
 						return = Replace(return, " " , Chr(32))
 					Case "clearhtml","removehtml":'清除html格式
-						return = expReplace(return,"<[^>]*>", "")
+						return = System.Text.ReplaceX(return,"<[^>]*>", "")
 					Case "clearspace":
-						return = expReplace(return,"[\n\t\r|]|(\s+|&nbsp;|　)+", "")
+						return = System.Text.ReplaceX(return,"[\n\t\r|]|(\s+|&nbsp;|　)+", "")
 					Case "clearformat":'清除所有格式
-						return = expReplace(return,"<[^>]*>|[\n\t\r|]|(\s+|&nbsp;|　)+", "")
+						return = System.Text.ReplaceX(return,"<[^>]*>|[\n\t\r|]|(\s+|&nbsp;|　)+", "")
 					End Select
 					str = str & return
 				Next
@@ -764,16 +744,16 @@ Class Cls_Template
 	Private Function executeTemplate(ByVal strHtml)
 		Dim html : html = strHtml
 		Dim Matchs
-		Set Matchs = expMatch(html,"\{(?:if)\s+([^}]*?)?\}")
+		Set Matchs = System.Text.MatchX(html,"\{(?:if)\s+([^}]*?)?\}")
 		If Matchs.Count Then
-			html = expReplace(html,"\{(?:if)\s+([^}]*?)?\}","<"&"%If $1 Then%"&">")
-			html = expReplace(html,"\{(?:elseif|ef)\s+([^}]*?)?\}","<"&"%ElseIf $1 Then%"&">")
-			html = expReplace(html,"\{(?:else\s+if)\s+([^}]*?)?\}","<"&"%Else If $1 Then%"&">")
-			html = expReplace(html,"\{else\s*\}","<"&"%Else%"&">")
-			html = expReplace(html,"\{/if\}","<"&"%End If%"&">")
+			html = System.Text.ReplaceX(html,"\{(?:if)\s+([^}]*?)?\}","<"&"%If $1 Then%"&">")
+			html = System.Text.ReplaceX(html,"\{(?:elseif|ef)\s+([^}]*?)?\}","<"&"%ElseIf $1 Then%"&">")
+			html = System.Text.ReplaceX(html,"\{(?:else\s+if)\s+([^}]*?)?\}","<"&"%Else If $1 Then%"&">")
+			html = System.Text.ReplaceX(html,"\{else\s*\}","<"&"%Else%"&">")
+			html = System.Text.ReplaceX(html,"\{/if\}","<"&"%End If%"&">")
 		End If
 		'Execute(html)
-		Set Matchs = expMatch(html,"\<"&"%([\s\S]*?)%"&"\>")
+		Set Matchs = System.Text.MatchX(html,"\<"&"%([\s\S]*?)%"&"\>")
 		If Matchs.Count Then'ASP代码支持，还不是那么完美,如果要解决，就要在下面的代码里面做处理
 		Dim tmp : tmp = expSplit(html,"\<"&"%([\s\S]*?)%"&"\>")
 			Dim i
@@ -795,7 +775,7 @@ Class Cls_Template
 	Private Function returnIfLabel(ByVal strHtml,ByVal strHead,ByVal dicRS)
 		Dim html : html = strHtml
 		Dim Match
-		For Each Match in expMatch(strHtml,"\{(?:if|elseif|ef)\s+([^}]*?)?\}")
+		For Each Match in System.Text.MatchX(strHtml,"\{(?:if|elseif|ef)\s+([^}]*?)?\}")
 			html = Replace(html,Match.value,returnLabelValues(Match.value,strHead,dicRS,0))
 		Next
 		returnIfLabel = html
@@ -809,7 +789,7 @@ Class Cls_Template
 			Pattern(0) = "\((?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^)][\s\S]*?)?\s*\)"'()标签
 			Pattern(1) = "\{(?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^}][\s\S]*?)?\s*\}"'{}标签
 			'(0)'标签名  (1)'路径  (2)'属性
-		For Each Match in expMatch(strVal,Pattern(key))
+		For Each Match in System.Text.MatchX(strVal,Pattern(key))
 			If Len(Match.SubMatches(1)) Then'如果是通过路径获取属性
 				return = getAttr(Match.SubMatches(0)&Match.SubMatches(1))
 			Else
@@ -866,7 +846,7 @@ Class Cls_Template
 
 			If Len(arrayTags(2))>1 Then
 				Dim strSql
-					strSql = expReplace(tagAttr("sql"),"^(\w+)\(\s*(\w+)\s*,\s*(\w+)\s*\)$","$1(Tags,tagAttr)")'找SQL
+					strSql = System.Text.ReplaceX(tagAttr("sql"),"^(\w+)\(\s*(\w+)\s*,\s*(\w+)\s*\)$","$1(Tags,tagAttr)")'找SQL
 					IF Right(strSql,14) = "(Tags,tagAttr)" Then
 					strSql = Eval(strSql)
 					End If
@@ -891,11 +871,11 @@ Class Cls_Template
 		If Len(aryTags(0))>0 Then
 			Dim Match,strSubPattern
 				strSubPattern = "\{((?:empty|null|eof|nodata)\:"&aryTags(1)&")\s*?(?:[\s\S.]*?)\/?\}(?:([\s\S.]*?)\{/\1\})"
-			Set Match = expMatch(aryTags(0),strSubPattern)
+			Set Match = System.Text.MatchX(aryTags(0),strSubPattern)
 			
 			If Match.Count Then'如果有 empty 标签
 				ary(0) = Match(0).SubMatches(1) 'empty标签
-				ary(1) = expReplace(aryTags(0),strSubPattern,"") '循环体部分
+				ary(1) = System.Text.ReplaceX(aryTags(0),strSubPattern,"") '循环体部分
 			Else
 				ary(1) = aryTags(0)
 			End If
@@ -915,7 +895,7 @@ Class Cls_Template
 				dicAttr(val.attributes(i).nodeName) = val.attributes(i).nodeTypedValue
 			Next
 		Else'存储名值对象
-			Set Matches = expMatch( val ,"([a-zA-Z0-9]+)\s*=\s*(['|""])([\s\S.]*?)\2")
+			Set Matches = System.Text.MatchX( val ,"([a-zA-Z0-9]+)\s*=\s*(['|""])([\s\S.]*?)\2")
 			For Each Match in Matches'0=属性,2=属性值
 				dicAttr(LCase(Trim(Match.SubMatches(0)))) = Match.SubMatches(2)
 			Next
@@ -927,7 +907,7 @@ Class Cls_Template
 	'选择一个带路径的节点,返回解析分解后的路径
 	Private Function selectLabelNode(ByVal strPath)
 		Dim Match,Matches : strPath = LCase(Trim(strPath))'标签转换成小写
-		Set Matches = expMatch( strPath ,"([a-zA-Z0-9\/]+)(\[@?((\w+)=(.*?))?\])?\.?(\w+)?(\:(body|empty|html|null|eof))?")
+		Set Matches = System.Text.MatchX( strPath ,"([a-zA-Z0-9\/]+)(\[@?((\w+)=(.*?))?\])?\.?(\w+)?(\:(body|empty|html|null|eof))?")
 		'传入参数示例：tag[attr=2].attr2:body
 		If Matches.Count Then
 			Dim ary(5)
@@ -978,142 +958,7 @@ Class Cls_Template
 			End If
 		End Select
 	End Function
-	
-	'查询模板的缓存是否过期？缓存不存在=-1,超时>0,没有超时=0
-	Private Function cacheTimeOut(ByVal strName,ByVal intType,ByVal intCacheTime)
-		Dim intCache : intCache = -1
-		If intTemplateCacheTime < 1 Then 
-			cacheTimeOut = -1
-			Exit Function
-		End If
-		
-		Select Case intType
-		Case 1'1=内存缓存'检查内存缓存是否过期
-			intCache = appCacheTimeOut(strName,intCacheTime)
-		Case 2'2=文件缓存'文件缓存是否超时:>0超时 -1=文件不存在 0 = 没有超时
-			intCache = fileCacheTimeOut(strName,intCacheTime)
-		Case Else'>0超时
-			intCache = 1
-		End Select
-		cacheTimeOut = intCache
-	End Function
-	
-	'设置缓存
-	Private Sub setCacheValue(ByVal strName,ByVal appValue,ByVal intCacheType)
-		Select Case intCacheType
-		Case 1'1=内存缓存
-			setAppCacheValue strName,appValue
-		Case 2'2=文件缓存
-			saveFile strName,appValue,strCharset
-		End Select
-	End Sub
-	
-	'读取缓存
-	Private Function getCacheValue(ByVal strName,ByVal intCacheType)
-		Dim return
-		Select Case intCacheType
-		Case 1'1=内存缓存
-			'检查内存缓存是否过期
-			If IsObject(getAppCacheValue(strName)) Then
-			Set getCacheValue = getAppCacheValue(strName)
-			Else
-				getCacheValue = getAppCacheValue(strName)
-			End If
-			Exit Function
-		Case 2'2=文件缓存
-			return = readFile(strName,strCharset)
-		Case Else
-			return = Empty
-		End Select
-		getCacheValue = return
-	End Function
-	
-	''检查缓存是否过期：-1没有这个缓存，>0过期时间，=0没有过期
-	Private Function appCacheTimeOut(ByVal strName,ByVal intTime)
-		Dim cacheData
-			cacheData = Application(strName)
-		If Not IsArray(cacheData)   Then appCacheTimeOut = -1 : Exit Function End If
-		If Not IsDate(cacheData(1)) Then appCacheTimeOut = -1 : Exit Function End If
-		
-		appCacheTimeOut = DateDiff(strDateDiffTimeInterval,CDate(cacheData(1)),Now())
-		If appCacheTimeOut < CInt(intTime) Then '如果没有超时
-			appCacheTimeOut = 0
-		Else
-			Application.Lock()
-			Application.Contents.Remove(strName)
-			Application.UnLock()
-		End If
-	End Function
-	
-	'文件缓存是否超时:>0超时 -1=文件不存在 0 = 没有超时
-	Private Function fileCacheTimeOut(ByVal strFilePath,ByVal intTime)
-		strFilePath = getMapPath(strFilePath)
-		'如果有缓存就读取缓存，没有就加载模板后建立缓存
-		If objFSO.FileExists(strFilePath) Then'如果能读取到文件
-			Dim Files : Set Files = objFSO.GetFile(strFilePath)
-			'检测文件缓存是否过期
-			fileCacheTimeOut = DateDiff(strDateDiffTimeInterval, FormatDateTime(Files.DateLastModified,0),Now())
-			If fileCacheTimeOut < Cint(intTime) Then'如果没有超时
-				fileCacheTimeOut = 0
-			End If
-			Set Files = Nothing
-		Else
-			fileCacheTimeOut = -1
-		End If
-	End Function
-	
-	'设置内存缓存设置缓存=================
-	Private Sub setApplication(ByVal appName,ByVal appValue)
-		Application.Lock()
-		If IsObject(appValue) Then
-			Set Application(appName) = appValue 
-		Else
-			Application(appName) = appValue 
-		End If
-		Application.UnLock()
-	End Sub
-	
-	'设置缓存=================
-	Private Sub setAppCacheValue(ByVal strCacheName,ByVal cacheValue)
-		Dim cacheData(3)
-		If IsObject(cacheValue) Then
-			Set cacheData(0) = cacheValue
-		Else
-			cacheData(0) = cacheValue
-		End If
-		cacheData(1) = Now()
-		cacheData(2) = 0'计数器
-		setApplication strCacheName,cacheData
-	End Sub 
-	
-	'获取缓存,值计数器++
-	Private Function getAppCacheValue(ByVal strCacheName) 
-		Dim cacheData
-		cacheData = Application(strCacheName) 
-		If IsArray(cacheData) Then
-			If IsObject(cacheData(0)) Then
-				Set getAppCacheValue = cacheData(0)
-			Else
-				getAppCacheValue = cacheData(0)
-			End If
-			cacheData(1) = Now()
-			cacheData(2) = cacheData(2)+1'计数器
-			setApplication strCacheName,cacheData
-		Else
-			getAppCacheValue = Empty
-		End If
-	End Function
 
-	'获取缓存计数器数值，-1 不存在
-	Private Function getAppCacheNum(ByVal strCacheName) 
-		Dim cacheData: cacheData = Application(strCacheName) 
-		If IsArray(cacheData) Then
-			getAppCacheNum = cacheData(2)
-		Else
-			getAppCacheNum = -1
-		End If
-	End Function
-	
 	'抛出错误
 	Private Sub errRaise(ByVal strVal)
 		If intDebugModule Then'如果开启错误提示
@@ -1121,5 +966,39 @@ Class Cls_Template
 			Response.End()
 		End If
 	End Sub
+
+	'// 输出结果输出模板的绝对路径
+	Private Function AbsPath(ByVal strCode)
+		Dim html: html = strCode
+		Dim Matches, Match
+		Set Matches = System.Text.MatchX(html, "(?:href|src)=(['""|])(?!(\/|\{|\(|\.\/|http:\/\/|https:\/\/|javascript:|#))(.+?)\1")
+		For Each Match In Matches
+			html = Replace(html, Match.Value, Replace(Match.Value, Match.SubMatches(2), RelPath(Match.SubMatches(2)), 1, -1, 0), 1, -1, 0)
+		Next
+		Set Matches = Nothing
+		AbsPath = html
+	End Function
+		
+	'// 替换相对路径，根据模板路径把../逐层替换到对应的目录
+	Private Function RelPath(ByVal strPath)
+		strPath = System.Text.ReplaceX(strPath, "(\/|\\)+", "/")
+		Dim bRootPath: bRootPath = System.Text.ReplaceX(strRootPath&strTemplatePath, "(\/|\\)+", "/")
+		Dim Matches: Set Matches = System.Text.MatchX(strPath, "^(\.\.\/)+")
+		
+		'// 如果不存在 ../ 父路径
+		If Matches.Count = 0 Then
+			RelPath = LCase(bRootPath & strPath)
+		Else
+			Dim src, spath
+			'// 模板的全路径
+			spath = Split(bRootPath, "/")
+			'//看有多少个 ../
+			Dim N: N = System.Text.MatchX(Matches(0).Value, "(\.\.\/)").Count
+			Dim I: For I=0 To Ubound(spath)-1-N: src = src & spath(I) & "/": Next
+			'// 把../替换成正确的目录
+			RelPath = LCase(Replace(strPath, Matches(0).Value, src, 1, -1, 0))
+		End If
+		Set Matches = Nothing
+	End Function
 End Class
 %>

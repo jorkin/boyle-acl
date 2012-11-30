@@ -94,10 +94,10 @@ Class Cls_IO
 				blCode = blCode & blHtmlCode & """" & blTempContent & """" & vbCrLf
 			End If
 			blTempContent = Mid(blContent, blCodeStartPosition, blContentStartPosition - blCodeStartPosition - 2)
-			blTempCode = System.Text.ReplaceX("^\s*=\s*", blTempContent, blHtmlCode) & vbCrLf
+			blTempCode = System.Text.ReplaceX(blTempContent, "^\s*=\s*", blHtmlCode) & vbCrLf
 			If blHtml = 1 Then
-				blTempCode = System.Text.ReplaceXMultiline("^(\s*)Response\.Write", blTempCode, "$1" & blHtmlCode) & vbCrLf
-				blTempCode = System.Text.ReplaceXMultiline("^(\s*)System\.(WB|W|WE|WR)", blTempCode, "$1" & blHtmlCode) & vbCrLf
+				blTempCode = System.Text.ReplaceXMultiline(blTempCode, "^(\s*)Response\.Write", "$1" & blHtmlCode) & vbCrLf
+				blTempCode = System.Text.ReplaceXMultiline(blTempCode, "^(\s*)System\.(WB|W|WE|WR)", "$1" & blHtmlCode) & vbCrLf
 			End If
 			blCode = blCode & Replace(blTempCode, vbCrLf&vbCrLf, vbCrLf)
 			blCodeStartPosition = InStr(blContentStartPosition, blContent, "<"&"%") + 2
@@ -117,8 +117,8 @@ Class Cls_IO
 	Private Function ReadIncludes(ByVal blFilePath)
 		Dim blContent: blContent = Me.Read(blFilePath)
 		If Not System.Text.IsEmptyAndNull(blContent) Then
-			blContent = System.Text.ReplaceX("<"&"% *?@.*?%"&">", blContent, "")
-			blContent = System.Text.ReplaceX("(<"&"%[^>]+?)(option +?explicit)([^>]*?%"&">)", blContent, "$1'$2$3")
+			blContent = System.Text.ReplaceX(blContent, "<"&"% *?@.*?%"&">", "")
+			blContent = System.Text.ReplaceX(blContent, "(<"&"%[^>]+?)(option +?explicit)([^>]*?%"&">)", "$1'$2$3")
 			Dim blRule: blRule = "<!-- *?#include +?(file|virtual) *?= *?""??([^"":?*\f\n\r\t\v]+?)""?? *?-->"
 			'// 判断文件中是否有包含其他文件
 			If System.Text.Test(blContent, blRule) Then
