@@ -155,7 +155,7 @@ Class Cls_Data_Page
 					If C("CURRENTPAGE") > 1 And C("CURRENTPAGE") = C("PAGECOUNT") And (C("RECORDCOUNT") Mod C("PAGESIZE") = 1) Then
 						blRs.AbsolutePosition = (C("CURRENTPAGE") - 1) * C("PAGESIZE")
 					Else blRs.AbsolutePosition = (C("CURRENTPAGE") - 1) * C("PAGESIZE") + 1 End If
-
+					
 					Run = blRs.GetRows(C("PAGESIZE"))
 				End If
 				blRs.Close: Set blRs = Nothing

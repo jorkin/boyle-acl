@@ -204,8 +204,8 @@ Class Cls_Template
     Private Function Finish(ByVal blParam1)
         Select Case UCase(m_Unknowns)
             Case "KEEP": Finish = blParam1
-            Case "REMOVE": Finish = System.Text.ReplaceX("\{[^ \t\r\n}]+\}", blParam1, "")
-            Case "COMMENT": Finish = System.Text.ReplaceX("\{([^ \t\r\n}]+)\}", blParam1, "<!-- Template Variable $1 undefined -->")
+            Case "REMOVE": Finish = System.Text.ReplaceX(blParam1, "\{[^ \t\r\n}]+\}", "")
+            Case "COMMENT": Finish = System.Text.ReplaceX(blParam1, "\{([^ \t\r\n}]+)\}", "<!-- Template Variable $1 undefined -->")
             Case Else Finish = blParam1
         End Select
     End Function
