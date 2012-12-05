@@ -173,6 +173,7 @@ Class Cls_Data
 	' * @返回值:   - [recordset] 记录集
 	' */
 	Public Function Read(ByVal blSql)
+		'SELECT 列名称 FROM 表名称
 		Set Read = QueryX(blSql, 1, 1, 1)
 	End Function
 	
@@ -183,6 +184,8 @@ Class Cls_Data
 	' * @返回值:   - [bool] 布尔值
 	' */
 	Public Function Create(ByVal blSql, ByVal blArray)
+		'INSERT INTO 表名称 VALUES (值1, 值2,....)
+		'INSERT INTO table_name (列1, 列2,...) VALUES (值1, 值2,....)
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then
 			blRs.AddNew
@@ -203,6 +206,7 @@ Class Cls_Data
 	' * @返回值:   - [bool] 布尔值
 	' */
 	Public Function Update(ByVal blSql, ByVal blArray)
+		'UPDATE 表名称 SET 列名称 = 新值 WHERE 列名称 = 某值
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then
 			Dim blCollection, blData: Set blData = System.Array.NewArray(blArray)
@@ -221,6 +225,7 @@ Class Cls_Data
 	' * @返回值:   - [bool] 布尔值
 	' */
 	Public Function Delete(ByVal blSql)
+		'DELETE FROM 表名称 WHERE 列名称 = 值
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then blRs.Delete: Delete = True _
 		Else Delete = False End If

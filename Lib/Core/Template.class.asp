@@ -136,34 +136,35 @@ Class Cls_Template
 		Dim i,ary : ary = expSplit(strTag,"\s*,\s*")
 		For i = 0 To Ubound(ary)'多标签赋值
 			strTag = LCase(ary(i))
+			'//=============================================================对这里进行扩展，TAG为数组时，对标签进行批量替换
 			If strTag = strTagHead Then
 				Select Case TypeName(strVal)
-				Case "Recordset"'记录集
-					If strVal.State And Not strVal.Eof Then
-						Set DicLabel = RsToDic(strVal)
-					End If
-				Case "Dictionary"
-					Set dicLabel = strVal
-				Case "Variant()"'如果传递的是数组
-					If Ubound(strVal) = 1 Then
-						Select Case TypeName(strVal(0))
-							Case "Recordset"
-								If strVal(0).State And Not strVal(0).eof Then
+					Case "Recordset"'记录集
+						If strVal.State And Not strVal.Eof Then
+							Set DicLabel = RsToDic(strVal)
+						End If
+					Case "Dictionary"
+						Set dicLabel = strVal
+					Case "Variant()"'如果传递的是数组
+						If Ubound(strVal) = 1 Then
+							Select Case TypeName(strVal(0))
+								Case "Recordset"
+									If strVal(0).State And Not strVal(0).eof Then
+										Set dicLabel = rsToDic(strVal(0))
+									End If
+								Case "Variant()"
 									Set dicLabel = rsToDic(strVal(0))
-								End If
-							Case "Variant()"
-								Set dicLabel = rsToDic(strVal(0))
-						End Select
-						Dim aryField : aryField = expSplit(strVal(1),"\s*,\s*")'字段序列
-						If TypeName(aryField)="Variant()" Then Set dicLabel = redimField(dicLabel,aryField)'重命名字段
-					End If
+							End Select
+							Dim aryField : aryField = expSplit(strVal(1),"\s*,\s*")'字段序列
+							If TypeName(aryField)="Variant()" Then Set dicLabel = redimField(dicLabel,aryField)'重命名字段
+						End If
 				End Select
 			Else'普通赋值,支持字典，普通数据(字段值、字符串、数字等)
 				Select Case TypeName(strVal)
-				Case "Dictionary","Recordset"
-					Set dicLabel(strTag) = strVal
-				Case Else
-					dicLabel(strTag) = strVal
+					Case "Dictionary","Recordset"
+						Set dicLabel(strTag) = strVal
+					Case Else
+						dicLabel(strTag) = strVal
 				End Select
 			End If
 		Next
@@ -171,19 +172,19 @@ Class Cls_Template
 
 	'生成静态页面(路径,页面名称)
 	Public Property Let Create(ByVal param)
-		Dim strFilePath,strContents
+		Dim strFilePath, strContents
 		If TypeName(param) = "Variant()" Then'传递数组
 			Select Case Ubound(param)
-			Case 0'Array(createpath+pagename)
-				strFilePath = param(0)
-				strContents = getHtml
-			Case 1'Array(createpath+pagename,content)
-				strFilePath = param(0)
-				strContents = param(1)
-			Case Else'Array(createpath+pagename,content,charset)
-				strFilePath = param(0)
-				strContents = param(1)
-				strCharset  = param(2)
+				Case 0'Array(createpath+pagename)
+					strFilePath = param(0)
+					strContents = getHtml
+				Case 1'Array(createpath+pagename,content)
+					strFilePath = param(0)
+					strContents = param(1)
+				Case Else'Array(createpath+pagename,content,charset)
+					strFilePath = param(0)
+					strContents = param(1)
+					strCharset  = param(2)
 			End Select
 		Else '文件路径+文件名
 			strFilePath = param
@@ -250,21 +251,21 @@ Class Cls_Template
 	End Property
 	
 	'获得标签所有的值
-	Public Property Get getLabelValues(ByVal strVal)
+	Public Property Get GetLabelValues(ByVal strVal)
 		If IsObject(GetLabVal(strVal)) Then
-			Set getLabelValues = GetLabVal(strVal)
+			Set GetLabelValues = GetLabVal(strVal)
 		Else
-			getLabelValues = GetLabVal(strVal)
+			GetLabelValues = GetLabVal(strVal)
 		End If
 	End Property
 	Public Property Get GetLabVal(ByVal strVal)
 		If LCase(strVal) = LCase(strTagHead) Then'如果返回所有值对象
-			Set getLabelValues = dicLabel
+			Set GetLabelValues = dicLabel
 		Else
 			If IsObject(dicLabel(strVal)) Then
-				Set getLabelValues = dicLabel(strVal)
+				Set GetLabelValues = dicLabel(strVal)
 			Else
-				getLabelValues = dicLabel(strVal)
+				GetLabelValues = dicLabel(strVal)
 			End If
 		End If
 	End Property
@@ -420,14 +421,11 @@ Class Cls_Template
 	'模板的include支持
 	Private Function LoadInclude(ByVal strHtml,ByVal strPath)
 		Dim incPath,html : html = strHtml
-		Dim Match,Matches
+		Dim Match, Matches
 		For Each Match In System.Text.MatchX(strHtml, "{include\s*([\('""])?\s*(.*?)\1}")
 			incPath = System.IO.FormatFilePath(strRootPath & strTemplatePath & Match.SubMatches(1))
-			If strPath <> incPath Then
-				html = Replace(html, Match.Value, LoadInclude(System.IO.Read(incPath), incPath), 1, -1, 0)
-			Else
-				html = Replace(html, Match.Value, "", 1, -1, 0)
-			End If
+			If strPath <> incPath Then html = Replace(html, Match.Value, LoadInclude(System.IO.Read(incPath), incPath), 1, -1, 0) _
+			Else html = Replace(html, Match.Value, "", 1, -1, 0)
 		Next
 		loadInclude = html
 	End Function
