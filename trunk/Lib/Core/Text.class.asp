@@ -8,7 +8,7 @@
 '//																				//
 '// Date       By			 Description										//
 '// ---------- ------------- -------------------------------------------------- //
-'// 2011/08/02 Boyle		 系统字符串操作类									//
+'// 2011/08/02 Boyle		 系统字符串操作类										//
 '// --------------------------------------------------------------------------- //
 
 Class Cls_Text
@@ -36,11 +36,11 @@ Class Cls_Text
 	End Property
 	
 	'/**
-	' * @功能说明: 直接返回判断表达式的值
-	' * @参数说明: - blExpression [string] : 判断表达式
-	' *			   - blParam1 [string] : 成立时返回的值
-	' * 		   - blParam2 [string] : 不成立时返回的值
-	' * @返回值:   - [string] :  字符串
+	' * @功能说明: 	直接返回判断表达式的值
+	' * @参数说明:	- blExpression [string] : 判断表达式
+	' *				- blParam1 [string] : 成立时返回的值
+	' * 			- blParam2 [string] : 不成立时返回的值
+	' * @返回值:		- [string] :  字符串
 	' */
 	Public Function IIF(ByVal blExpression, ByVal blParam1, ByVal blParam2)
 		If blExpression Then IIF = blParam1 Else IIF = blParam2 End If
@@ -580,18 +580,6 @@ Class Cls_Text
 			blParam = Replace(blParam, ">", "&gt;")
 			RemoveHtml = Trim(blParam)
 		Else RemoveHtml = "" End If
-	End Function
-
-	'/**
-	' * @功能说明: 清除字符串中所有空格换行
-	' * @参数说明: - blParam [string]: 源字符串
-	' * @返回值:   - [string] : 字符串
-	' */
-	Public Function RemoveSpace(ByVal blParam)
-		If Not Me.IsEmptyAndNull(blParam) Then
-			blParam = ReplaceX(blParam, "[\n\s*\r|]", "")
-			RemoveSpace = Trim(blParam)
-		Else RemoveSpace = "" End If
 	End Function
 	
 	'/**

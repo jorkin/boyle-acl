@@ -365,8 +365,7 @@ Class Cls_IO
 			End If
 		Next
 		
-		blParam2 = Replace(blParam2, "//", "/")
-		blParam2 = Replace(blParam2, "\\", "\")
+		blParam2 = System.Text.ReplaceX(blParam2, "(\/|\\)+", "/")
 		
 		'// 判断目标路径是否为绝对路径
 		If Mid(blParam2, 2, 1) <> ":" Then blParam2 = Server.MapPath(blParam2) _
