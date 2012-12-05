@@ -23,7 +23,7 @@ Class Cls_Data_Page
 		C.CompareMode = 1
 		
 		'// 初始化使用的数据库类型
-		C("TYPE") = GetDataBaseType()
+		C("TYPE") = System.Data.GetDataBaseType()
 		
 		'// 初始化默认分页按钮输出样式
 		C("__FIRST") = "&#171;": C("__LAST") = "&#187;"
@@ -32,7 +32,7 @@ Class Cls_Data_Page
 		'// 初始化分页样式
 		C("STYLE") = "PAGER"
 		'// 初始化接收当前页的链接标签
-		C("URLPARAM") = "PAGE"
+		C("LABEL") = "PAGE"
 		
 		'// 初始化分页所必须的参数
 		C("ROWPAGE") = 10: C("PAGESIZE") = 10: C("PAGECOUNT") = 0
@@ -62,7 +62,7 @@ Class Cls_Data_Page
 	
 	'// 获取参数集合，以JSON方式输出
 	Public Property Get Parameters()
-		Parameters = System.Text.DictionaryToJSON(C, "PAGEPARAMETERS", 0)
+		Parameters = System.Text.DictionaryToJSON(C, "PAGEPARAMETERS:NUMBER")
 	End Property
 	
 	'// 获取单一参数
@@ -79,11 +79,11 @@ Class Cls_Data_Page
 	End Property
 	
 	'// 设置地址栏页码标签
-	Public Property Get UrlParam()
-		UrlParam = C("URLPARAM")
+	Public Property Get Label()
+		Label = C("LABEL")
 	End Property
-	Public Property Let UrlParam(ByVal blParam)
-		C("URLPARAM") = blParam
+	Public Property Let Label(ByVal blParam)
+		C("LABEL") = blParam
 	End Property
 	
 	'// 显示分页码的个数
@@ -120,29 +120,27 @@ Class Cls_Data_Page
 	'// 当前页码
 	Public Property Get CurrentPage()
 		Dim tPage: tPage = System.Text.ToNumeric(C("CURRENTPAGE"))
+		Dim cPage: cPage = System.Text.ToNumeric(C("PAGECOUNT"))
         If tPage < 1 Then tPage = 1
-        If tPage > C("PAGECOUNT") Then tPage = System.Text.ToNumeric(C("PAGECOUNT"))		
+        If tPage > cPage Then tPage = cPage
 		CurrentPage = tPage
 	End Property
 	Public Property Let CurrentPage(ByVal Param1)
-		Dim tPage: tPage = System.Text.ToNumeric(Param1)
-		If tPage < 1 Then tPage = 1
-		If tPage > C("PAGECOUNT") Then tPage = C("PAGECOUNT")
-		C("CURRENTPAGE") = System.Text.ToNumeric(tPage)
+		C("CURRENTPAGE") = System.Text.ToNumeric(Param1)
 	End Property
 	
 	'// 执行分页程序
 	Public Function Run()
 		Run = Empty
-		Dim blRs, blSQL
+		Dim blRs, blSQL: blSQL = C("SQL")
 		Select Case UCase(C("TYPE"))
 			Case "1", "MSSQL":
 			
 			Case "2", "MSSQL-SP":
 			Case "3", "MYSQL":
-				Run = System.Data.Connection.Execute(C("SQL") & " LIMIT "& (C("CURRENTPAGE") - 1) * C("PAGESIZE") & "," & C("PAGESIZE")).GetRows()
+				Run = System.Data.Connection.Execute(blSQL & " LIMIT "& (C("CURRENTPAGE") - 1) * C("PAGESIZE") & "," & C("PAGESIZE")).GetRows()
 			Case "4", "ACCESS":
-				Set blRs = System.Data.QueryX(C("SQL"), 1, 1, 1)
+				Set blRs = System.Data.QueryX(blSQL, 1, 1, 1)
 				'// 设置总记录数
 				C("RECORDCOUNT") = blRs.RecordCount
 				'// 设置总页数
@@ -169,7 +167,7 @@ Class Cls_Data_Page
 	'// 各种分页样式 http://mis-algoritmos.com/2007/03/16/some-styles-for-your-pagination/
 	Public Function Out()
 		Dim blHtml: blHtml = Empty
-		Dim blUrl: blUrl = GetUrlParam("*", C("URLPARAM"))
+		Dim blUrl: blUrl = GetUrlParam("*", C("LABEL"))
 		Dim blListPage, thePage, PrevBound, NextBound
 		Dim rowPage: rowPage = System.Text.ToNumeric(C("ROWPAGE"))
 		PrevBound = C("CURRENTPAGE") - Int(rowPage / 2)
@@ -217,23 +215,13 @@ Class Cls_Data_Page
 		Dim blQSItem, blParam: blParam = ""
 		For Each blQSItem In Request.QueryString()
 			'// 将除指定项除外进行重新拼接
-			If UCase(blQSItem) <> blPageParam Then
+			If UCase(blQSItem) <> UCase(blPageParam) Then
 				blParam = blParam & blQSItem & "=" & Server.UrlEncode(Request.QueryString(blQSItem)) & "&"
 			End If
 		Next
 		'// 重组之后，将指定向添加到末尾处
 		blParam = "?" & blParam & blPageParam & "=" & blPageNumber
 		GetUrlParam = LCase(blParam)
-	End Function
-	
-	'// 获取当前使用的数据库类型
-	Private Function GetDataBaseType()
-		Select Case System.Data.Connection.Provider
-			Case "MSDASQL.1", "SQLOLEDB.1", "SQLOLEDB" : GetDataBaseType = "MSSQL"
-			Case "MSDAORA.1", "OraOLEDB.Oracle" : GetDataBaseType = "ORACLE"
-			Case "Microsoft.Jet.OLEDB.4.0" : GetDataBaseType = "ACCESS"
-			Case Else GetDataBaseType = ""
-		End Select
 	End Function
 End Class
 

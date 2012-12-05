@@ -55,9 +55,7 @@ Class Cls_JSON
 		If IsNull(p) Then p = Counter
 		If varType(v) = 9 Then
 			If TypeName(v) = "Cls_JSON" Then Set Collection(p) = v Else Collection(p) = v End If
-		Else
-			Collection(p) = v
-		End If
+		Else Collection(p) = v End If
 	End Property
 	Public Default Property Get Pair(p)
 		If IsNull(p) Then p = Count - 1
@@ -122,7 +120,7 @@ Class Cls_JSON
 				RenderArray = RenderArray & rendered & "" & limiter
 			End If
 		Next
-		RenderArray = RenderArray & "]"
+		RenderArray = RenderArray & "]": Err.Clear
 	End Function
 	
 	'// 返回Json字符串

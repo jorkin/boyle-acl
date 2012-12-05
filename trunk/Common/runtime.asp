@@ -81,4 +81,5 @@ End Function
 load_runtime_file()
 '// 设置输出的页面编码
 Response.Charset = System.Charset
+System.Debug = APP_DEBUG
 %>
