@@ -30,7 +30,7 @@ Class Boyle
 	Private PrArray, PrCache, PrError
 	Private PrUpload, PrTemplate, PrSecurity
 	
-	Private PrDebug, PrCharset
+	Private PrDebug, PrCharset, PrQueries
 	
 	'// 定义公共对象
 	Public Name, Version
@@ -121,11 +121,19 @@ Class Boyle
 	Public Property Get Charset()
 		Charset = PrCharset
 	End Property
+
+	'// 功能说明：页面执行数据库操作的资料
+	Public Property Let Queries(ByVal blNumber)
+		PrQueries = PrQueries + blNumber
+	End Property
+	Public Property Get Queries()
+		Queries = PrQueries
+	End Property
 	
 	'// 功能说明：返回页面执行所用的时间
-	Public Function [End]()
+	Public Property Get [End]()
 		[End] = FormatNumber(Timer() - vbTIME, 6, -1)
-	End Function
+	End Property
 	
 	'// 功能说明：获取地址栏信息
 	Public Function Uri(ByVal blParam)

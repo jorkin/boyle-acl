@@ -90,19 +90,6 @@ Class Cls_Text
 	Public Function ToNumeric(ByVal blParam)		
 		If IsNumeric(blParam) Then ToNumeric = CDbl(blParam) Else ToNumeric = 0 End If		
 	End Function
-	
-	'/**
-	' * @功能说明: 将目标数组转换为字符串
-	' * @参数说明: - blParam1 [array,string]: 需要转换的数组
-	' * @参数说明: - blParam2 [string]: 分隔字符
-	' * @返回值:   - [string] : 字符串
-	' */
-	Public Function ToString(ByVal blParam1, ByVal blParam2)
-		If IsArray(blParam1) Then
-			ToString = Join(blParam1, blParam2)
-		ElseIf IsObject(blParam1) Then ToString = ""
-		Else ToString = Trim(blParam1) End If
-	End Function
 
 	'/**
 	' * @功能说明: 将目标字符串换为Char型数组
@@ -141,17 +128,7 @@ Class Cls_Text
 	End Function
 	
 	'/**
-	' * @功能说明: 将字符串转换成数组
-	' * @参数说明: - blParam1 [string]: 需要转换的数据
-	' * 		   - blParam2 [string]: 分隔字符
-	' * @返回值:   - [array] : 数组
-	' */
-	Public Function ToArray(ByVal blParam1, ByVal blParam2)
-		ToArray = Me.IIF(Not Me.IsEmptyAndNull(blParam1), Split(blParam1, blParam2), Array("acl.toarray.empty"))
-	End Function
-	
-	'/**
-	' * @功能说明: 将字符串转换成二维数组
+	' * @功能说明: 将字符串转换成伪二维数组
 	' * @格式参照: [a:1,2,3,4:20,5]
 	' * @参数说明: - blParam [string]: 需要转换的数据
 	' * 		  - blItemName [array]: 为空时，表示自动为键值命名。为数组时，表示算定义对象的组名称。下标必须和待转换后的数组下标对称
@@ -209,27 +186,40 @@ Class Cls_Text
 		Next
 	End Sub
 	
-	'/**
-	' * @功能说明: 将Dictionary对象以JSON方式进行输出
-	' * @参数说明: - blDictionary [dictionary]: Dictionary对象
-	' * 		   - blJsonName [string]: Json对象用在Javascript中的对象名
-	' * 		   - blUnicode [bool]: 是否将字符串进行Unicode编码
-	' * @返回值:   - [string] : 字符串
-	' */	
-	Public Function DictionaryToJSON(ByVal blDictionary, ByVal blJsonName, ByVal blUnicode)
-		If Not Me.IsEmptyAndNull(blDictionary) Then
-			Dim blString: blString = "{ """ & blJsonName & """ : [{"
-			Dim blKey: blKey = blDictionary.Keys
-			Dim blItem: blItem = blDictionary.Items
-			Dim blCount: blCount =  blDictionary.Count - 1
-			Dim I: For I = 0 To blCount
-				If ToBoolean(blUnicode) Then
-					blString = blString & """" & Escape(blKey(I)) & """:""" & Escape(JSEnCode(blItem(I))) & """" & Me.IIF(I = blCount, "", ", ")
-				Else blString = blString & """" & blKey(I) & """:""" & JSEnCode(blItem(I)) & """" & Me.IIF(I = blCount, "", ", ") End If
-			Next
-			DictionaryToJSON = blString & "}] }"
-		Else DictionaryToJSON = "" End If
-		Set blDictionary = Nothing
+	'// 将Dictionary对象以JSON方式进行输出
+	'// blParam参数 name[:totalName][:notjs]
+	'// name String (字符串)
+	'// 该Json数据在Javascript中的名称
+	'// totalName(可选) String (字符串)
+	'// 如果不省略此参数，则会在生成的Json字符串中添加一个名称为该参数的表示总记录数的项 
+	'// notjs(可选) String (字符串)
+	'// 此参数为固定字符串"notjs",如不省略此参数，则输出的Json字符串中不会将中文进行编码 
+	Public Function DictionaryToJSON(ByVal blDictionary, ByVal blParam)
+		Dim blKey: blKey = blDictionary.Keys
+		Dim blItem: blItem = blDictionary.Items
+		Dim blCount: blCount =  blDictionary.Count - 1
+
+		Dim blTotal
+		Dim blNotJS: blNotJS = False
+		Dim blName: blName = Me.Separate(blParam)
+		
+		If Not Me.IsEmptyAndNull(blName(1)) Then
+			blParam = blName(0): blTotal = blName(1)
+			blName = Me.Separate(blTotal)
+			If Not Me.IsEmptyAndNull(blName(1)) Then
+				blTotal = blName(0): blNotJS = (LCase(blName(1)) = "notjs")
+			End If
+		End If
+
+		Dim blJSON: Set blJSON = System.JSON.New(0)
+		If blNotJS Then blJSON.StrEncode = False
+		If Not Me.IsEmptyAndNull(blTotal) Then blJSON(blTotal) = blCount
+		blJSON(blParam) = System.JSON.New(0)
+		Dim I: For I = 0 To blCount
+			blJSON(blParam)(blKey(I)) = blItem(I)
+		Next
+		DictionaryToJSON = blJSON.JsString
+		Set blJSON = Nothing
 	End Function
 
 	'/**
@@ -434,7 +424,7 @@ Class Cls_Text
 	Function Cut(ByVal blParam1, ByVal blParam2)
 		Dim I, blStringLen, blANSI, blSymbol, blSuffix
 		blStringLen = Len(blParam1): blANSI = 0: blSymbol = "..."
-		blSuffix = ToArray(blParam2, ":"): blParam2 = ToNumeric(blSuffix(0))
+		blSuffix = Me.Separate(blParam2, ":"): blParam2 = ToNumeric(blSuffix(0))
 		If UBound(blSuffix) > 0 Then blSymbol = blSuffix(1)
 		For I = 1 to blStringLen
 			blANSI = Me.IIF(Abs(AscW(Mid(blParam1, I, 1))) > 255, blANSI + 2, blANSI + 1)

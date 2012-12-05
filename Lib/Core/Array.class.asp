@@ -12,7 +12,7 @@
 '// --------------------------------------------------------------------------- //
 
 '// --------------------------------------------------------------------------- //
-'// 作者：Coldstone(coldstone[at]qq.com)										//
+'// 作者：Coldstone(coldstone[at]qq.com)											//
 '// 网址：http://easp.lengshi.com/												//
 '// --------------------------------------------------------------------------- //
 
@@ -44,20 +44,20 @@ Class Cls_Array
 		Set dicHash = Nothing
 	End Sub
 	
-	'建新类实例
+	'// 新建类实例
 	Public Function [New]()
 		Set [New] = New Cls_Array
 		[New].IgnoreCase = Me.IgnoreCase
 	End Function
 	
-	'// 建新数组实例
+	'// 新建数组实例
 	Public Function NewArray(ByVal a)
 		Set NewArray = New Cls_Array
 		NewArray.IgnoreCase = Me.IgnoreCase
 		NewArray.Data = a
 	End Function
 	
-	'// 建新哈希表实例
+	'// 新建哈希表实例
 	Public Function NewHash(ByVal a)
 		Set NewHash = New Cls_Array
 		NewHash.IgnoreCase = Me.IgnoreCase
@@ -865,8 +865,8 @@ Class Cls_Array
 		k = "i"
 		If System.Text.Test(f, "[a-zA-Z]+:(.+)") Then
 			'// 如果有自定义的标识符
-			k = System.Text.CLeft(f,":")
-			f = System.Text.CRight(f,":")
+			k = System.Text.CLeft(f, ":")
+			f = System.Text.CRight(f, ":")
 		End If
 		k = "%" & k
 		For i = 0 To [End]
@@ -1168,6 +1168,18 @@ Class Cls_Array
 		For i = 0 To Ubound(o)
 			If Not Has(o(i)) Then Son = False : Exit Function
 		Next
+	End Function
+
+	'// 对目标二维数组的行列值进行对调A(I, J)换成A(J, I)
+	Public Function Swap(ByVal arrVal)
+		Dim arr1, I, J
+		ReDim arr1(UBound(arrVal, 2), UBound(arrVal))
+		For J = 0 To UBound(arr1, 2)
+			For I = 0 To UBound(arr1)
+				arr1(I, J) = arrVal(J, I)
+			Next
+		Next
+		Swap = arr1
 	End Function
 End Class
 %>

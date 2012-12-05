@@ -129,8 +129,8 @@ Class Cls_Error
 	'// 显示错误信息框
 	Private Function ShowMsg(ByVal blMsg, ByVal t)
 		Dim s, x
-		's = s & "<style type=""text/css"">body{margin:50px;font-family: 'Microsoft Yahei', Verdana, arial;font-size:14px;}.dev{color:#999;}"
-		's = s & "h2{border-bottom:1px solid #DDD;padding:8px 0;}ul{margin:0;padding:0;list-style:none;}.msg{line-height:200%;}</style>"
+		s = s & "<style type=""text/css"">body{margin:50px;font-family: 'Microsoft Yahei', Verdana, arial;font-size:14px;}.dev{color:#999;}"
+		s = s & "h2{border-bottom:1px solid #DDD;padding:8px 0;}ul{margin:0;padding:0;list-style:none;}.msg{line-height:200%;}</style>"
 		s = s & "<div id=""xError"">" & vbCrLf
 		s = s & "<h2>" & PrTitle & "</h2>" & vbCrLf
 		s = s & "<p class=""msg"">" & blMsg & "</p>" & vbCrLf		

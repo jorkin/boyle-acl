@@ -10,7 +10,7 @@
 '//																				//
 '// Date       By			 Description										//
 '// ---------- ------------- -------------------------------------------------- //
-'// 2012/11/28 Boyle		 框架入口文件										//
+'// 2012/11/28 Boyle		 框架入口文件											//
 '// --------------------------------------------------------------------------- //
 %>
 
@@ -20,11 +20,12 @@ System.IO.Import CONF_PATH & "config.asp"
 
 '// 执行入口
 System.Run()
+
 '// 输出页面
 '// http://localhost/?s=modle/action/var/value
 '// http://localhost/app/index.php/Form/read/id/1
 
 A("Index")
 
-Call Terminate()
+'Call Terminate()
 %>

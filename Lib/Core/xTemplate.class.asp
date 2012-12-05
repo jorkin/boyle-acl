@@ -133,6 +133,7 @@ Class Cls_Template
 		Dim I: For I = 0 To blDictionary.Count - 1
 			Assign blKey(I), blItem(I), blAppend
 		Next
+		Set blDictionary = Nothing
 	End Sub
 	
 	'/**

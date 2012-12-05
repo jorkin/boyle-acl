@@ -22,6 +22,10 @@ Class Cls_Data
 
 	'// 初始化资源
 	Private Sub Class_Initialize()
+		System.Error.E(200) = "错误的参数个数！"
+		System.Error.E(201) = "数据库服务器端连接错误，请检查数据库连接信息是否正确！"
+		System.Error.E(202) = "仅支持从MS SQL Server数据库中调用存储过程！"
+		System.Error.E(203) = "生成Json格式代码出错！"
 	End Sub
 	
 	'// 释放资源
@@ -35,11 +39,12 @@ Class Cls_Data
 		Set Page = PrPager
 	End Property
 	
-	'/**
-	' * 数据库地址（读/写）
-	' * @params 数据库地址
-	' * @return 数据库地址（字符串）
-	' */	
+	'// 新建类实例
+	Public Function [New]()
+		Set [New] = New Cls_Data
+	End Function
+	
+	'// 数据库地址（读/写）
 	Public Property Get Source()
 		Source = m_Source
 	End Property
@@ -73,18 +78,14 @@ Class Cls_Data
 		End If
 
 		If Err Then
-			If Not m_Conn Is Nothing Then
-				Response.Write "ADO Version: " & m_Conn.Version & "<br />"
-				If m_Conn.State = &H00000001 Then m_Conn.Close
-			End If
-			Set m_Conn = Nothing
-			Response.Write(Err.Source & "<br />" & Err.Description)
-			Err.Clear: Response.End()
+			m_Conn.Close: Set m_Conn = Nothing
+			System.Error.Raise 201
+			Response.End()
 		End If
+		Err.Clear
 	End Sub
 
-	'// 关闭连接，如果是直接与数据库连接的情况则什么也不做
-	'// 如果是从连接池中取得的连接那么释放传来的连接
+	'// 关闭并释放数据库连接
 	Public Sub DisConnect()
 		On Error Resume Next
 		If IsObject(m_Conn) Then m_Conn.Close: Set m_Conn = Nothing
@@ -93,6 +94,7 @@ Class Cls_Data
 	
 	'// 释放记录集(支持同时释放多个记录集)
 	Public Sub DisRecordset(ByVal blObject)
+		On Error Resume Next
 		If IsArray(blObject) Then
 			Dim I: For I = 0 To UBound(blObject)
 				If IsObject(blObject(I)) And blObject(I).State = 1 Then blObject(I).Close: Set blObject(I) = Nothing
@@ -102,6 +104,7 @@ Class Cls_Data
 			'// blObject.State=1时，表明数据集为打开状态
 			If IsObject(blObject) And blObject.State = 1 Then blObject.Close: Set blObject = Nothing
 		End If
+		Err.Clear
 	End Sub
 	Public Sub C(ByVal blObject)
 		DisRecordset(blObject)
@@ -142,13 +145,9 @@ Class Cls_Data
 				beCommand.Parameters.Append beParameter
 			Next
 			Set Command = beCommand.Execute
-		Else Set Command = Nothing: System.Error.Throw "提示:错误的参数个数!" End If
+			System.Queries = 1
+		Else System.Error.Raise 200 End If
 	
-		' System.Log.X = Array("SQL:" & blSQL)
-		' System.Log.X = Array("1:" & beCommand.Parameters(0) & "-Type:" & beCommand.Parameters(0).Type)
-		' System.Log.X = Array("2:" & beCommand.Parameters(1) & "-Type:" & beCommand.Parameters(1).Type)
-		' System.Log.X = Array("3:" & beCommand.Parameters(2) & "-Type:" & beCommand.Parameters(2).Type)
-		' System.Log.X = Array("4:" & beCommand.Parameters(3) & "-Type:" & beCommand.Parameters(3).Type)
 		Set beCommand = Nothing
 	End Function
 	
@@ -163,6 +162,7 @@ Class Cls_Data
 	Public Function QueryX(ByVal blSource, ByVal blCursorType, ByVal blLockType, ByVal blOptions)
 		Dim blRs: Set blRs = Server.CreateObject("ADODB.Recordset")
 		blRs.Open blSource, Connection, blCursorType, blLockType, blOptions
+		System.Queries = 1
 		Set QueryX = blRs
 		Set blRs = Nothing
 	End Function
@@ -172,42 +172,46 @@ Class Cls_Data
 	' * @参数说明: - blSql [string]: SQL查询语句
 	' * @返回值:   - [recordset] 记录集
 	' */
-	Public Function Query(ByVal blSql)
-		Set Query = QueryX(blSql, 1, 1, 1)
+	Public Function Read(ByVal blSql)
+		Set Read = QueryX(blSql, 1, 1, 1)
 	End Function
 	
 	'/**
 	' * @功能说明: 添加记录
 	' * @参数说明: - blSql [string]: SQL查询语句
-	' * 		   - blArray [array]: 必须为二维数据集，格式：[字段名称1, 字段值1][字段名称2, 字段值2]...
+	' * 		  - blArray [array]: 数组，格式：Array(字段名称1:字段值1,字段名称2:字段值2,...)
 	' * @返回值:   - [bool] 布尔值
 	' */
-	Public Function Insert(ByVal blSql, ByVal blArray)
+	Public Function Create(ByVal blSql, ByVal blArray)
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then
 			blRs.AddNew
-			Dim I: For I = 0 To UBound(blArray)
-				blRs(""& blArray(I)(0) &"") = blArray(I)(1)
+			Dim blCollection, blData: Set blData = System.Array.NewArray(blArray)
+			Dim I: For I = 0 To (blData.Size - 1)
+				blCollection = System.Text.Separate(blData(I))
+				blRs(""&blCollection(0)&"") = blCollection(1)
 			Next
-			blRs.Update: Insert = True
-		Else Insert = False End If
+			blRs.Update: Create = True
+		Else Create = False End If
 		blRs.Close: Set blRs = Nothing
 	End Function
 	
 	'/**
 	' * @功能说明: 修改记录
 	' * @参数说明: - blSql [string]: SQL查询语句
-	' * 		   - blArray [array]: 必须为二维数据集，格式：[字段名称1, 字段值1][字段名称2, 字段值2]...
+	' * 		   - blArray [array]: 数组，格式：Array(字段名称1:字段值1,字段名称2:字段值2,...)
 	' * @返回值:   - [bool] 布尔值
 	' */
-	Public Function Modify(ByVal blSql, ByVal blArray)
+	Public Function Update(ByVal blSql, ByVal blArray)
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then
-			Dim I: For I = 0 To UBound(blArray)
-				blRs(""& blArray(I)(0) &"") = blArray(I)(1)
+			Dim blCollection, blData: Set blData = System.Array.NewArray(blArray)
+			Dim I: For I = 0 To (blData.Size - 1)
+				blCollection = System.Text.Separate(blData(I))
+				blRs(""&blCollection(0)&"") = blCollection(1)
 			Next
-			blRs.Update: Modify = True
-		Else Modify = False End If
+			blRs.Update: Update = True
+		Else Update = False End If
 		blRs.Close: Set blRs = Nothing
 	End Function	
 	
@@ -239,19 +243,20 @@ Class Cls_Data
 			If .IsEmptyAndNull(blTablePrefix) Then ToSQL = "": Exit Function
 			Dim blArray: Set blArray = System.Array.New
 			blArray.Hash = blTablePrefix 'Format: Array("TABLE", "ID,USER,PASS", "0")
-			blTable = blArray(0)
-			blFields = .IIF(Not .IsEmptyAndNull(blArray(1)), .ToString(.ToArray(blArray(1), ","), "],["), blArray(1))
+			blTable = blArray(0): blFields = blArray(1)
 			blTopNumber = System.Text.ToNumeric(blArray(2))
 			Set blArray = Nothing
 	
 			'// 将参数进行组合成完整的查询语句
 			blstrSQL = "Select "
 			If blTopNumber > 0 Then blstrSQL = blstrSQL & "Top " & blTopNumber & " "
-			blstrSQL = blstrSQL & .IIF(blFields <> "" And blFields <> "*", "[" & blFields & "]", "* ") & " From [" & blTable & "]"
+			blstrSQL = blstrSQL & .IIF(blFields <> "" And blFields <> "*", blFields, "*") & " From " & blTable
 			'// 多条件查询，暂时只是将多个条件用AND进行连接
-			If IsArray(blCondition) Then blstrSQL = blstrSQL & " Where " & .ToString(blCondition, " And ")_
-			Else blstrSQL = .IIF(blCondition <> "", (blstrSQL & " Where " & blCondition), blstrSQL)
-			ToSQL = .IIF(blOrderField <> "", (blstrSQL & " Order By " & blOrderField), blstrSQL)
+			If Not .IsEmptyAndNull(blCondition) Then
+				If IsArray(blCondition) Then blstrSQL = blstrSQL & " Where " & System.Array.NewArray(blCondition).J(" And ") _
+				Else blstrSQL = blstrSQL & " Where " & blCondition
+			End If
+			ToSQL = .IIF(Not .IsEmptyAndNull(blOrderField), (blstrSQL & " Order By " & blOrderField), blstrSQL)
 		End With
 	End Function
 	
@@ -260,9 +265,7 @@ Class Cls_Data
 		Dim I, blCommand, blOutParam
 		Dim blType: blType = Empty
 		
-		If IsEmptyAndNull(DataBaseType) And Not UCase(DataBaseType) = "MSSQL" And DataBaseType <> 1 Then
-			System.WE ("仅支持从MS SQL Server数据库中调用存储过程！"): Exit Function
-		End If
+		If GetDataBaseType <> "MSSQL" Then System.Error.Raise 202: Exit Function
 		
 		If InStr(blName, ":") > 0 Then
 			blType = UCase(Trim(Mid(blName, InStr(blName, ":") + 1)))
@@ -279,7 +282,7 @@ Class Cls_Data
 			blOutParam = "Return"
 			
 			If Not IsArray(blParam) Then 
-				If Not IsEmptyAndNull(blParam) Then blParam = System.Text.IIF(InStr(blParam, ",") > 0, sPlit(blParam, ","), Array(blParam))
+				If Not System.Text.IsEmptyAndNull(blParam) Then blParam = System.Text.IIF(InStr(blParam, ",") > 0, sPlit(blParam, ","), Array(blParam))
 			End If
 			
 			If IsArray(blParam) Then
@@ -329,6 +332,16 @@ Class Cls_Data
 		Set JetEngine = Nothing
 	End Sub
 	
+	'// 获取当前使用的数据库类型
+	Public Function GetDataBaseType()
+		Select Case System.Data.Connection.Provider
+			Case "MSDASQL.1", "SQLOLEDB.1", "SQLOLEDB" : GetDataBaseType = "MSSQL"
+			Case "MSDAORA.1", "OraOLEDB.Oracle" : GetDataBaseType = "ORACLE"
+			Case "Microsoft.Jet.OLEDB.4.0" : GetDataBaseType = "ACCESS"
+			Case Else GetDataBaseType = ""
+		End Select
+	End Function
+	
 	'// 将记录集转换为JSON格式代码
 	'// blParam参数 name[:totalName][:notjs]
 	'// name String (字符串) 
@@ -370,7 +383,8 @@ Class Cls_Data
 		toJSON = blJSON.JsString
 		Set blJSON = Nothing
 		Rs.Close(): Set Rs = Nothing
-		If Err.Number <> 0 Then System.Error.Raise "生成Json格式代码出错！"
+		If Err.Number <> 0 Then System.Error.Raise 203
+		Err.Clear
 	End Function
 	
 End Class

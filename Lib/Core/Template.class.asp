@@ -159,7 +159,7 @@ Class Cls_Template
 			End If
 		Next
 	End Property
-	Public Property Let Assign(ByVal strTag,ByVal strVal)
+	Public Property Let Assign(ByVal strTag, ByVal strVal)
 		d(strTag) = strVal
 	End Property
 
@@ -270,8 +270,9 @@ Class Cls_Template
 			call analysisTemplate()
 		End Select
 		
-		'返回执行时间
+		'返回执行时间和数据库执行次数
 		strResultHtml = System.Text.ReplaceX(strResultHtml, "\{runtime\s*\/?\}|(\<\!--runtime--\>)(.*?)\1", "<"&"!--runtime-->"&System.End&"<"&"!--runtime-->" )
+		strResultHtml = System.Text.ReplaceX(strResultHtml, "\{queries\s*\/?\}|(\<\!--queries--\>)(.*?)\1", "<"&"!--queries-->"&System.Queries&"<"&"!--queries-->" )
 		getHtml = strResultHtml
 	End Property
 	
