@@ -177,7 +177,7 @@ Class Cls_Data
 	'/**
 	' * @功能说明: 添加记录
 	' * @参数说明: - blSql [string]: SQL查询语句
-	' * 		  - blArray [array]: 数组，格式：Array(字段名称1:字段值1,字段名称2:字段值2,...)
+	' * 		  - blArray [array]: 数组，格式：Array(Array(字段名称1,  字段值1), Array(字段名称2,字段值2),...)
 	' * @返回值:   - [bool] 布尔值
 	' */
 	Public Function Create(ByVal blSql, ByVal blArray)
@@ -186,10 +186,8 @@ Class Cls_Data
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then
 			blRs.AddNew
-			Dim blCollection, blData: Set blData = System.Array.NewArray(blArray)
-			Dim I: For I = 0 To (blData.Size - 1)
-				blCollection = System.Text.Separate(blData(I))
-				blRs(""&blCollection(0)&"") = blCollection(1)
+			Dim I: For I = 0 To UBound(blArray)
+				blRs(""& blArray(I)(0) &"") = blArray(I)(1)
 			Next
 			blRs.Update: Create = True
 		Else Create = False End If
@@ -199,17 +197,15 @@ Class Cls_Data
 	'/**
 	' * @功能说明: 修改记录
 	' * @参数说明: - blSql [string]: SQL查询语句
-	' * 		   - blArray [array]: 数组，格式：Array(字段名称1:字段值1,字段名称2:字段值2,...)
+	' * 		   - blArray [array]: 数组，格式：Array(Array(字段名称1,  字段值1), Array(字段名称2,字段值2),...)
 	' * @返回值:   - [bool] 布尔值
 	' */
 	Public Function Update(ByVal blSql, ByVal blArray)
 		'UPDATE 表名称 SET 列名称 = 新值 WHERE 列名称 = 某值
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then
-			Dim blCollection, blData: Set blData = System.Array.NewArray(blArray)
-			Dim I: For I = 0 To (blData.Size - 1)
-				blCollection = System.Text.Separate(blData(I))
-				blRs(""&blCollection(0)&"") = blCollection(1)
+			Dim I: For I = 0 To UBound(blArray)
+				blRs(""& blArray(I)(0) &"") = blArray(I)(1)
 			Next
 			blRs.Update: Update = True
 		Else Update = False End If
@@ -254,11 +250,7 @@ Class Cls_Data
 			If blTopNumber > 0 Then blstrSQL = blstrSQL & "Top " & blTopNumber & " "
 			blstrSQL = blstrSQL & .IIF(blFields <> "" And blFields <> "*", blFields, "*") & " From " & blTable
 			'// 多条件查询，暂时只是将多个条件用AND进行连接
-			If Not .IsEmptyAndNull(blCondition) Then
-				'If IsArray(blCondition) Then blstrSQL = blstrSQL & " Where " & System.Array.NewArray(blCondition).J(" And ") _
-				'Else blstrSQL = blstrSQL & " Where " & blCondition
-				blstrSQL = blstrSQL & " Where " & blCondition
-			End If
+			blstrSQL = .IIF(Not .IsEmptyAndNull(blCondition), (blstrSQL & " Where (" & blCondition) & ")", blstrSQL)
 			ToSQL = .IIF(Not .IsEmptyAndNull(blOrderField), (blstrSQL & " Order By " & blOrderField), blstrSQL)
 		End With
 	End Function
@@ -401,147 +393,101 @@ End Class
 Class Cls_Data_Page
 	
 	'// 声明私有变量
-	Private C
+	Private PrDic
 	'// 声明公共变量
 	
 	'// 初始化资源
 	Private Sub Class_Initialize()
-		Set C = Dicary(): C.CompareMode = 1
+		Set PrDic = Dicary(): PrDic.CompareMode = 1
 		
 		'// 初始化使用的数据库类型
-		C("TYPE") = System.Data.GetDataBaseType()
+		PrDic("TYPE") = System.Data.GetDataBaseType()
 		
 		'// 初始化默认分页按钮输出样式
-		C("__FIRST") = "&#171;": C("__LAST") = "&#187;"
-		C("__PREVIOUS") = "&#8249;": C("__NEXT") = "&#8250;"
+		PrDic("__FIRST") = "&#171;": PrDic("__LAST") = "&#187;"
+		PrDic("__PREVIOUS") = "&#8249;": PrDic("__NEXT") = "&#8250;"
 		
 		'// 初始化分页样式
-		C("STYLE") = "PAGER"
+		PrDic("STYLE") = "PAGER"
 		'// 初始化接收当前页的链接标签
-		C("LABEL") = "PAGE"
+		PrDic("LABEL") = "PAGE"
 		
 		'// 初始化分页所必须的参数
-		C("ROWPAGE") = 10: C("PAGESIZE") = 10: C("PAGECOUNT") = 0
-		
+		PrDic("ROWPAGE") = 10: PrDic("PAGESIZE") = 10: PrDic("PAGECOUNT") = 0
 	End Sub
 	
 	'// 释放资源
 	Private Sub Class_Terminate()
-		Set C = Nothing
+		Set PrDic = Nothing
 	End Sub
 	
-	'// 设置SQL语句
-	Public Property Let SQL(ByVal blParam)
-		C("SQL") = blParam
-	End Property
-	Public Property Get SQL()
-		SQL = C("SQL")
-	End Property
-	
 	'// 设置参数
-	Public Property Let Parameters(ByVal blArray)
-		Dim tDic: Set tDic = System.Text.ToHashTable(blArray)
-		'Dim tDic: Set tDic = System.Array.NewHash(blArray).Maps
-		Dim tKey: For Each tKey In tDic
-			C(tKey) = tDic.Item(tKey)
-		Next
+	Public Property Let Parameters(ByVal bField, ByVal bValue)
+		'// 当键值为空时，表示对所有参数进行设置
+		If System.Text.IsEmptyAndNull(bField) Then
+			Dim tmpDic, tmpKey
+			Select Case VarType(bValue)
+				Case 0, 1: '// vbEmpty, vbNull
+					Set tmpDic = Dicary()
+				Case 8: '// vbString
+					'// 如果目标参数的值为字符串时，将其转换为数组
+					'// 其中对字符串用“|”符号进行分隔
+					Dim tmpObj: Set tmpObj = System.Array.New
+					tmpObj.Symbol = "|"
+					tmpObj.Data = bValue
+					Set tmpDic = System.Text.ToHashTable(tmpObj.ToArray)
+					Set tmpObj = Nothing
+				Case 9: '// vbObject
+					Set tmpDic = bValue
+				Case 8192, 8194, 8204, 8209: '// 8192(Array),8204(Variant),8209(Byte)
+					Set tmpDic = System.Text.ToHashTable(bValue)
+			End Select
+			For Each tmpKey In tmpDic: PrDic(tmpKey) = tmpDic.Item(tmpKey): Next
+			Set tmpDic = Nothing
+		Else PrDic(bField) = bValue End If
 	End Property
 	
-	'// 获取参数集合，以JSON方式输出
-	Public Property Get Parameters()
-		Parameters = System.Text.DictionaryToJSON(C, "PAGEPARAMETERS:NUMBER")
+	'// 获取参数集合
+	'// 如果参数为空时，则返回一个DIC对象，否则返回目标项的值
+	Public Property Get Parameters(ByVal bField)
+		If System.Text.IsEmptyAndNull(bField) Then Set Parameters = PrDic _
+		Else Parameters = PrDic(bField)
 	End Property
 	
-	'// 获取单一参数
-	Public Property Get Parameter(ByVal blItem)
-		Parameter = C(blItem)
-	End Property
-	
-	'// 设置分页样式
-	Public Property Get Style()
-		Style = C("STYLE")
-	End Property
-	Public Property Let Style(ByVal blParam)
-		C("STYLE") = blParam
-	End Property
-	
-	'// 设置地址栏页码标签
-	Public Property Get Label()
-		Label = C("LABEL")
-	End Property
-	Public Property Let Label(ByVal blParam)
-		C("LABEL") = blParam
-	End Property
-	
-	'// 显示分页码的个数
-	Public Property Get rowPage()
-		rowPage = C("ROWPAGE")
-	End Property
-	Public Property Let rowPage(ByVal blSize)
-		C("ROWPAGE") = System.Text.ToNumeric(blSize)
-	End Property
-	'// 每页显示的记录数
-	Public Property Get PageSize()
-		PageSize = C("PAGESIZE")
-	End Property
-	Public Property Let PageSize(ByVal blSize)
-		C("PAGESIZE") = System.Text.ToNumeric(blSize)
-	End Property
-	
-	'// 总记录数
-	Public Property Get RecordCount()
-		RecordCount = C("RECORDCOUNT")
-	End Property
-	Public Property Let RecordCount(ByVal blParam)
-		C("RECORDCOUNT") = System.Text.ToNumeric(blParam)
-	End Property
-	
-	'// 总页数
-	Public Property Get PageCount()
-		PageCount = C("PAGECOUNT")
-	End Property
-	Public Property Let PageCount(ByVal blParam)
-		C("PAGECOUNT") = System.Text.ToNumeric(blParam)
-	End Property
-	
-	'// 当前页码
+	'// 获取当前页码
 	Public Property Get CurrentPage()
-		Dim tPage: tPage = System.Text.ToNumeric(C("CURRENTPAGE"))
-		Dim cPage: cPage = System.Text.ToNumeric(C("PAGECOUNT"))
+		Dim tPage: tPage = System.Text.ToNumeric(PrDic("CURRENTPAGE"))
+		Dim cPage: cPage = System.Text.ToNumeric(PrDic("PAGECOUNT"))
         If tPage < 1 Then tPage = 1
         If tPage > cPage Then tPage = cPage
 		CurrentPage = tPage
-	End Property
-	Public Property Let CurrentPage(ByVal Param1)
-		C("CURRENTPAGE") = System.Text.ToNumeric(Param1)
 	End Property
 	
 	'// 执行分页程序
 	Public Function Run()
 		Run = Empty
-		Dim blRs, blSQL: blSQL = C("SQL")
-		Select Case UCase(C("TYPE"))
-			Case "1", "MSSQL":
-			
+		Dim blRs, blSQL: blSQL = PrDic("SQL")
+		Select Case UCase(PrDic("TYPE"))
+			Case "1", "MSSQL":			
 			Case "2", "MSSQL-SP":
 			Case "3", "MYSQL":
-				Run = System.Data.Connection.Execute(blSQL & " LIMIT "& (C("CURRENTPAGE") - 1) * C("PAGESIZE") & "," & C("PAGESIZE")).GetRows()
+				Run = System.Data.Connection.Execute(blSQL & " LIMIT "& (PrDic("CURRENTPAGE") - 1) * PrDic("PAGESIZE") & "," & PrDic("PAGESIZE")).GetRows()
 			Case "4", "ACCESS":
 				Set blRs = System.Data.QueryX(blSQL, 1, 1, 1)
 				'// 设置总记录数
-				C("RECORDCOUNT") = blRs.RecordCount
+				PrDic("RECORDCOUNT") = blRs.RecordCount
 				'// 设置总页数
-				C("PAGECOUNT") = Abs(Int(-(C("RECORDCOUNT") / C("PAGESIZE"))))
+				PrDic("PAGECOUNT") = Abs(Int(-(PrDic("RECORDCOUNT") / PrDic("PAGESIZE"))))
 				'// 设置当前页
-				C("CURRENTPAGE") = CurrentPage
+				PrDic("CURRENTPAGE") = CurrentPage
 				
 				If Not blRs.Bof And Not blRs.Eof Then
 					'// ACCESS BUG
-					If C("CURRENTPAGE") > 1 And C("CURRENTPAGE") = C("PAGECOUNT") And (C("RECORDCOUNT") Mod C("PAGESIZE") = 1) Then
-						blRs.AbsolutePosition = (C("CURRENTPAGE") - 1) * C("PAGESIZE")
-					Else blRs.AbsolutePosition = (C("CURRENTPAGE") - 1) * C("PAGESIZE") + 1 End If
+					If PrDic("CURRENTPAGE") > 1 And PrDic("CURRENTPAGE") = PrDic("PAGECOUNT") And (PrDic("RECORDCOUNT") Mod PrDic("PAGESIZE") = 1) Then
+						blRs.AbsolutePosition = (PrDic("CURRENTPAGE") - 1) * PrDic("PAGESIZE")
+					Else blRs.AbsolutePosition = (PrDic("CURRENTPAGE") - 1) * PrDic("PAGESIZE") + 1 End If
 					
-					Run = blRs.GetRows(C("PAGESIZE"))
+					Run = blRs.GetRows(PrDic("PAGESIZE"))
 				End If
 				blRs.Close: Set blRs = Nothing
 		End Select
@@ -554,31 +500,31 @@ Class Cls_Data_Page
 	'// 各种分页样式 http://mis-algoritmos.com/2007/03/16/some-styles-for-your-pagination/
 	Public Function Out()
 		Dim blHtml: blHtml = Empty
-		Dim blUrl: blUrl = GetUrlParam("*", C("LABEL"))
+		Dim blUrl: blUrl = GetUrlParam("*", PrDic("LABEL"))
 		Dim blListPage, thePage, PrevBound, NextBound
-		Dim rowPage: rowPage = System.Text.ToNumeric(C("ROWPAGE"))
-		PrevBound = C("CURRENTPAGE") - Int(rowPage / 2)
-		NextBound = C("CURRENTPAGE") + Int(rowPage / 2)
+		Dim rowPage: rowPage = System.Text.ToNumeric(PrDic("ROWPAGE"))
+		PrevBound = PrDic("CURRENTPAGE") - Int(rowPage / 2)
+		NextBound = PrDic("CURRENTPAGE") + Int(rowPage / 2)
 		If PrevBound <= 0 Then PrevBound = 1: NextBound = rowPage
-		If NextBound > C("PAGECOUNT") Then NextBound = C("PAGECOUNT"): PrevBound = C("PAGECOUNT") - rowPage
+		If NextBound > PrDic("PAGECOUNT") Then NextBound = PrDic("PAGECOUNT"): PrevBound = PrDic("PAGECOUNT") - rowPage
 		
-		If C("PAGECOUNT") = 1 Then
+		If PrDic("PAGECOUNT") = 1 Then
 			blHtml = blHtml & "<span class=""current"">1</span>"
 		Else
 			'// 显示首页和下一页
-			If C("CURRENTPAGE") > 1 Then
+			If PrDic("CURRENTPAGE") > 1 Then
 				Dim blHomeHref: blHomeHref = Replace(blUrl, "*", 1)
-				Dim blPreviousHref: blPreviousHref = Replace(blUrl, "*", C("CURRENTPAGE") - 1)
-				blHtml = blHtml & "<span><a href="""& blHomeHref &""">"& C("__FIRST") &"</a></span><span><a href="""& blPreviousHref &""">"& C("__PREVIOUS") &"</a></span>"
+				Dim blPreviousHref: blPreviousHref = Replace(blUrl, "*", PrDic("CURRENTPAGE") - 1)
+				blHtml = blHtml & "<span><a href="""& blHomeHref &""">"& PrDic("__FIRST") &"</a></span><span><a href="""& blPreviousHref &""">"& PrDic("__PREVIOUS") &"</a></span>"
 			Else
-				blHtml = blHtml & "<span class=""disabled"">"& C("__FIRST") &"</span><span class=""disabled"">"& C("__PREVIOUS") &"</span>"
+				blHtml = blHtml & "<span class=""disabled"">"& PrDic("__FIRST") &"</span><span class=""disabled"">"& PrDic("__PREVIOUS") &"</span>"
 			End If
 			
 			'// 显示页码列表
 			For rowPage = PrevBound To NextBound
-				If rowPage = C("CURRENTPAGE") Then
+				If rowPage = PrDic("CURRENTPAGE") Then
 					thePage = "<span class=""current"">"& rowPage &"</span>"
-				ElseIf rowPage <= C("PAGECOUNT") Then
+				ElseIf rowPage <= PrDic("PAGECOUNT") Then
 					thePage = "<span><a href="""& Replace(blUrl, "*", rowPage) &""">"& rowPage &"</a></span>"
 				End If
 				blListPage = blListPage & thePage
@@ -586,15 +532,15 @@ Class Cls_Data_Page
 			blHtml = blHtml & LCase(blListPage)
 			
 			'// 显示尾页和上一页
-			If C("CURRENTPAGE") < C("PAGECOUNT") Then
-				Dim blNextHref: blNextHref = Replace(blUrl, "*", C("CURRENTPAGE") + 1)
-				Dim blLastHref: blLastHref = Replace(blUrl, "*", C("PAGECOUNT"))
-				blHtml = blHtml & "<span><a href="""& blNextHref &""">"& C("__NEXT") &"</a></span><span><a href="""& blLastHref &""">"& C("__LAST") &"</a></span>"
+			If PrDic("CURRENTPAGE") < PrDic("PAGECOUNT") Then
+				Dim blNextHref: blNextHref = Replace(blUrl, "*", PrDic("CURRENTPAGE") + 1)
+				Dim blLastHref: blLastHref = Replace(blUrl, "*", PrDic("PAGECOUNT"))
+				blHtml = blHtml & "<span><a href="""& blNextHref &""">"& PrDic("__NEXT") &"</a></span><span><a href="""& blLastHref &""">"& PrDic("__LAST") &"</a></span>"
 			Else
-				blHtml = blHtml & "<span class=""disabled"">"& C("__NEXT") &"</span><span class=""disabled"">"& C("__LAST") &"</span>"
+				blHtml = blHtml & "<span class=""disabled"">"& PrDic("__NEXT") &"</span><span class=""disabled"">"& PrDic("__LAST") &"</span>"
 			End If
 		End If
-		Out = "<div class="""& LCase(C("STYLE")) &""">" & blHtml & "</div>"
+		Out = "<div class="""& LCase(PrDic("STYLE")) &""">" & blHtml & "</div>"
 	End Function
 	
 	'// 智能链接组合

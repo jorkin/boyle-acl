@@ -166,7 +166,8 @@ Class Cls_Text
 			If IsArray(blArray(I)) Then
 				If IsObject(blArray(I)(0)) Then
 					System.Error.Message = "当前Array(" & I & ")(0)值类型为：" & TypeName(blArray(I)(0)) & " 。"
-					System.Error.Raise "键不能为对象类型。"
+					System.Error.E(100) = "键不能为对象类型。"
+					System.Error.Raise 100
 				End If
 				If IsObject(blArray(I)(1)) Then Set blHashObject(blArray(I)(0)) = blArray(I)(1) _
 				Else blHashObject(blArray(I)(0)) = blArray(I)(1)
@@ -174,11 +175,12 @@ Class Cls_Text
 				Dim blString: blString = blArray(I) & ""
 				Dim blPos: blPos = InStr(blString, ":")
                 If blPos <= 1 Then
-					System.Error.Message = "发生在：" & blArray(I) & " 。"
-					System.Error.Raise "项目不存在，"
+					System.Error.Message = blArray(I)
+					System.Error.E(101) = "项目不存在，发生在："
+					System.Error.Raise 101
 				End If
-				Dim blName: blName = Left(blString, blPos - 1)
-				Dim blValue: blValue = Mid(blString, blPos + 1)
+				Dim blName: blName = Me.Separate(blString)(0)
+				Dim blValue: blValue = Me.Separate(blString)(1)
 				blHashObject(blName) = blValue
 			End If
 		Next

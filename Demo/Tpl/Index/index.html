@@ -1,0 +1,27 @@
+﻿{include "head.html"}
+<div id="main">
+
+<ul class="title">
+<li>{$catename}</li>
+</ul>
+	<div class="line">
+		<ul>
+		<!-- {$customer sql="select top 10 id,ci_name as name from be_customer"} -->
+		<li>{customer.id}.{customer.name}({customer.addr}|{customer.tel})</li>
+		<!-- {empty:customer} -->
+		<li>没有相关数据！</li>
+		<!-- {/empty:customer} -->
+		<!-- {/$customer} -->
+		</ul>
+	</div>
+	<div class="line">
+		<ul>
+		<!-- {$customerpage} -->
+		<li>{customerpage.id}.{customerpage.name}({CUSTOMERPAGE.CAR})</li>
+		<!-- {/$customerpage} -->
+		</ul>
+		{$pager}
+	</div>
+
+</div>
+{include "footer.html"}

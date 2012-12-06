@@ -24,7 +24,7 @@ Public Sub A(byVal blParam)
 End Sub
 
 Public Function M(byVal blParam)
-	Set M = System.Model.New(blParam)
+	Set M = System.Model.New(C("DB.PREFIX") & blParam)
 End Function
 	
 '// 创建一个字典对象

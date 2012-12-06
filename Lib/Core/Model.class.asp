@@ -13,7 +13,7 @@ Class Cls_Model
 
 	'// 定义私有命名对象
 	Private PrDic
-	Private PrTable, PrField, PrLimit, PrWhere, PrOrder
+	Private PrTable
 
 	Private Sub Class_Initialize
 		Set PrDic = Dicary(): PrDic.CompareMode = 1
@@ -35,86 +35,75 @@ Class Cls_Model
 		Table = PrTable
 	End Property
 	Public Property Let Table(ByVal bParam)
-		PrTable = C("DB.PREFIX") & bParam
-	End Property
-
-	'// 设置读取表格字段名称
-	Public Property Get Field()
-		Field = PrField
-	End Property
-	Public Property Let Field(ByVal bParam)
-		PrField = bParam
-	End Property
-
-	'// 设置读取的记录数
-	Public Property Get Limit()
-		Limit = PrLimit
-	End Property
-	Public Property Let Limit(ByVal bParam)
-		PrLimit = bParam
-	End Property
-
-	'// 设置读取查询条件
-	Public Property Get Where()
-		Where = PrWhere
-	End Property
-	Public Property Let Where(ByVal bParam)
-		PrWhere = bParam
-	End Property
-
-	'// 设置读取查询条件
-	Public Property Get Order()
-		Order = PrOrder
-	End Property
-	Public Property Let Order(ByVal bParam)
-		PrOrder = bParam
+		PrTable = bParam
 	End Property
 
 	'// 实现批量设置SQL语句参数
-	Public Property Let Parameter(ByVal bField, ByVal bValue)
-		If Not System.Text.IsEmptyAndNull(bField) Then
+	Public Property Let Parameters(ByVal bField, ByVal bValue)
+		'// 当键值为空时，表示对所有参数进行设置
+		If System.Text.IsEmptyAndNull(bField) Then
+			Dim tmpDic, tmpKey
 			Select Case VarType(bValue)
-				Case 0, 1, 8: '// vbNull,vbEmpty,vbString
-					PrDic(bField) = ""&bValue
-				Case 2, 3, 4, 5: '//vbInteger,vbLong,vbSingle,vbDouble
-					PrDic(bField) = bValue
+				Case 0, 1: '// vbEmpty,vbNull
+					Set tmpDic = Dicary()
+				Case 2, 3, 4, 5: '// vbInteger,vbLong,vbSingle,vbDouble
+					Set tmpDic = System.Text.ToHashTable(Array("LIMIT:"&bValue))
+				'Case 6: '// vbCurrency
+				'Case 7: '// vbDate
+				Case 8: '// vbString
+					'// 如果目标参数的值为字符串时，将其转换为数组
+					'// 其中对字符串用“|”符号进行分隔
+					Dim tmpObj: Set tmpObj = System.Array.New
+					tmpObj.Symbol = "|"
+					tmpObj.Data = bValue
+					Set tmpDic = System.Text.ToHashTable(tmpObj.ToArray)
+					Set tmpObj = Nothing
 				Case 9: '// vbObject
-					Select Case TypeName(bValue)
-						Case "Cls_Array":
-							'// 对条件进行组装
-							If UCase(bField) = "WHERE" Then
-								'PrDic(bField) = JoinWhere(bValue)
-							End If
-					End Select
-				Case 8192, 8194, 8204, 8209: '// 8192(vbArray),8204(vbVariant),8209(vbByte)
-					Dim blStr
+					Set tmpDic = bValue
+				'Case 10: '// vbError
+				'Case 11: '// vbBoolean
+				Case 8192, 8194, 8204, 8209: '// 8192(Array),8204(vbVariant()),8209(Byte)
+					Set tmpDic = System.Text.ToHashTable(bValue)
+			End Select
+			For Each tmpKey In tmpDic: PrDic(tmpKey) = tmpDic.Item(tmpKey): Next
+			Set tmpDic = Nothing
+		Else
+			Select Case VarType(bValue)
+				Case 0, 1:
+					PrDic(bField) = ""
+				Case 2, 3, 4, 5, 6, 7, 8:
+					PrDic(bField) = bValue
+				Case 9:
+				'Case 11:
+				Case 8192, 8194, 8204, 8209:
 					If UCase(bField) = "WHERE" Then
-						Dim blLogic: blLogic = System.Text.IIF(UBound(bValue), System.Array.NewHash(bValue(1))("_logic"), "AND")
-						blStr = System.Array.NewArray(bValue(0)).J(" "& blLogic &" ")
-					End If
-					PrDic(bField) = blStr
+						PrDic(bField) = JoinWhere(bValue)
+					ElseIf UCase(bField) = "FIELD" Then
+						PrDic(bField) = System.Array.NewArray(bValue).J(",")
+					Else PrDic(bField) = bValue(0) End If
 			End Select
 		End If
+	End Property
+	
+	'// 获取参数集合
+	'// 如果参数为空时，则返回一个DIC对象，否则返回目标项的值
+	Public Property Get Parameters(ByVal bField)
+		If System.Text.IsEmptyAndNull(bField) Then Set Parameters = PrDic _
+		Else Parameters = PrDic(bField)
 	End Property
 
 	'// 拼接条件语句
 	Private Function JoinWhere(ByVal bValue)
+		Dim tmpObj: Set tmpObj = System.Array.NewHash(bValue)
 		'// 判断是否存在逻辑判断符，如果存在则用此符号进行组装，否则用AND进行组装
-		If LCase(bValue.HasIndex("_logic")) Then
-			'// 获取逻辑判断符
-			Dim blLogic: blLogic = bValue("_logic")
+		If LCase(tmpObj.HasIndex("_logic")) Then
+			'// 获取逻辑判断符的值
+			Dim blLogic: blLogic = tmpObj("_logic")
 			'// 删除逻辑判断符 记录项
-			bValue.Delete("_logic")
-			Dim blStr, blList: blList = bValue.Hash
-			Dim I: For I = 0 To UBound(blList)
-				blStr = blStr & " " & blLogic & " " & blList(I)
-			Next
-			JoinWhere = blStr
-		Else
-			'// 删除逻辑判断符项
-			bValue.Delete("_logic")
-			JoinWhere = bValue.J(" AND ")
-		End If	
+			tmpObj.Delete("_logic")
+			JoinWhere = tmpObj.J(") "& blLogic &" (")
+		Else JoinWhere = tmpObj.J(") AND (") End If
+		Set tmpObj = Nothing
 	End Function
 
 	'// 新增数据
@@ -129,8 +118,7 @@ Class Cls_Model
 	Public Function [Select]()
 		With System.Data
 			Dim blSQL: blSQL = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
-			System.WE blSQL
-			System.Template.d("sql") = blSQL
+			PrDic("SQL") = blSQL
 			Set [Select] = .Read(blSQL)
 		End With
 	End Function
@@ -153,6 +141,19 @@ Class Cls_Model
 
 	'// 字段值减少
 	Public Function setDec()
+	End Function
+
+	'// 操作分页
+	Public Function Pager()
+		With System.Data
+			PrDic("SQL") = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
+			'// 将所有参数传递给分页类
+			.Page.Parameters("") = Me.Parameters("")			
+			'// 对得到的结果进行行列对换
+			Dim blList: blList = System.Array.Swap(.Page.Run)
+			'// 返回数组，顺序依次为 [0]记录集列表，[1]分页导航码，[2]分页参数
+			Pager = Array(blList, .Page.Out, .Page.Parameters(""))
+		End With
 	End Function
 End Class
 %>
