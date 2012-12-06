@@ -1,0 +1,70 @@
+﻿<?xml version="1.0"?>
+<template><title><attr><![CDATA[]]></attr><html><![CDATA[{$title}]]></html></title><catename><attr><![CDATA[]]></attr><html><![CDATA[{$catename}]]></html></catename><customer nodepath="customer"><attr><![CDATA[]]></attr><html><![CDATA[{$customer}
+		<li>{customer.id}.{customer.name}</li>
+		{empty:customer}
+		<li>没有相关数据！</li>
+		{/empty:customer}
+		{/$customer}]]></html><body><![CDATA[
+		<li>{customer.id}.{customer.name}</li>
+		]]></body><null><![CDATA[
+		<li>没有相关数据！</li>
+		]]></null></customer><customerpage nodepath="customerpage"><attr><![CDATA[]]></attr><html><![CDATA[{$customerpage}
+		<li>{customerpage.id}.{customerpage.name}.{customerpage.tel}.{customerpage.add}</li>
+		{/$customerpage}]]></html><body><![CDATA[
+		<li>{customerpage.id}.{customerpage.name}.{customerpage.tel}.{customerpage.add}</li>]]></body><null><![CDATA[]]></null></customerpage><pager><attr><![CDATA[]]></attr><html><![CDATA[{$pager}]]></html></pager><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>{$title}</title>
+<link href="./demo/tpl/index/stylesheet/basic.css" rel="stylesheet" type="text/css" />
+<style type="text/css">
+
+#main { margin: 0 auto; width: 90%; margin-top: 10px;}
+#main .title { font-size: 14px;}
+
+.line { margin-top: 20px; border-top: 1px solid #666;}
+/*默认样式*/
+.pager { margin-top:10px; margin-bottom:10px; padding:3px; text-align:left; color:#66C; }
+/*分页链接样式*/
+.pager a { margin:2px; padding:2px 5px; color:#009; text-decoration:none; border:1px solid #aad; }
+/*分页链接鼠标移过的样式*/  
+.pager a:hover, .pager a:active { color:#000; border:1px solid #009; }
+/*当前页码的样式*/  
+.pager span.current { font-weight:bold; margin:0 2px; padding:2px 5px; color:#fff; background-color:#009; border:1px solid #009; }
+/*不可用分页链接的样式(比如第1页时的"上一页"链接)*/  
+.pager span.disabled { margin:0 2px; padding:2px 5px; color:#ddd; border:1px solid #eee; }
+</style>
+</head>
+
+<body>
+
+<div id="main">
+
+<ul class="title">
+<li>{$catename}</li>
+</ul>
+	<div class="line">
+		<ul>
+		{$customer}
+		<li>{customer.id}.{customer.name}</li>
+		{empty:customer}
+		<li>没有相关数据！</li>
+		{/empty:customer}
+		{/$customer}
+		</ul>
+	</div>
+	<div class="line">
+		<ul>
+		{$customerpage}
+		<li>{customerpage.id}.{customerpage.name}.{customerpage.tel}.{customerpage.add}</li>
+		{/$customerpage}
+		</ul>
+		{$pager}
+	</div>
+
+</div>
+
+<!--runtime-->执行时间<!--runtime-->
+</body>
+</html>
+]]></template>

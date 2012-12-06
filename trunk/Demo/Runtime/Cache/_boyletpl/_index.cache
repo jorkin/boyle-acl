@@ -1,0 +1,73 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>欢迎使用Boyle.ACL框架 - 模板示例</title>
+<link href="./demo/tpl/index/stylesheet/basic.css" rel="stylesheet" type="text/css" />
+<style type="text/css">
+
+#main { margin: 0 auto; width: 90%; margin-top: 10px;}
+#main .title { font-size: 14px;}
+
+.line { margin-top: 20px; border-top: 1px solid #666;}
+/*默认样式*/
+.pager { margin-top:10px; margin-bottom:10px; padding:3px; text-align:left; color:#66C; }
+/*分页链接样式*/
+.pager a { margin:2px; padding:2px 5px; color:#009; text-decoration:none; border:1px solid #aad; }
+/*分页链接鼠标移过的样式*/  
+.pager a:hover, .pager a:active { color:#000; border:1px solid #009; }
+/*当前页码的样式*/  
+.pager span.current { font-weight:bold; margin:0 2px; padding:2px 5px; color:#fff; background-color:#009; border:1px solid #009; }
+/*不可用分页链接的样式(比如第1页时的"上一页"链接)*/  
+.pager span.disabled { margin:0 2px; padding:2px 5px; color:#ddd; border:1px solid #eee; }
+</style>
+</head>
+
+<body>
+
+<div id="main">
+
+<ul class="title">
+<li>手机通讯</li>
+</ul>
+	<div class="line">
+		<ul>
+		
+		<li>1.董氏发汽配连锁杭州经营部</li>
+		
+		<li>2.董氏发汽配连锁诸暨店口经营部</li>
+		
+		<li>3.诸暨店口江雨标准件</li>
+		
+		<li>4.杭州闽通汽配</li>
+		
+		<li>5.湖北省麻城市汽车制动泵厂</li>
+		
+		<li>6.玉环县南洋机械制造有限公司</li>
+		
+		<li>7.浙江企成机械集团有限公司</li>
+		
+		<li>8.中路汽配连锁杭州分公司</li>
+		
+		<li>9.杭州久通汽配商行</li>
+		
+		<li>10.浙江万达汽车方向机有限公司</li>
+		
+		</ul>
+	</div>
+	<div class="line">
+		<ul>
+		
+		<li>1.2.3.4</li>
+		<li>油嘴垫.纸垫.大泵回油阀.汽管接头</li>
+		<li>玉环.玉环.玉环.</li>
+		<li>*10.*10.*12.</li>
+		</ul>
+		<div class="pager"><span class="disabled">&#171;</span><span class="disabled">&#8249;</span><span class="current">1</span><span><a href="?page=2">2</a></span><span><a href="?page=3">3</a></span><span><a href="?page=4">4</a></span><span><a href="?page=5">5</a></span><span><a href="?page=6">6</a></span><span><a href="?page=7">7</a></span><span><a href="?page=8">8</a></span><span><a href="?page=9">9</a></span><span><a href="?page=10">10</a></span><span><a href="?page=2">&#8250;</a></span><span><a href="?page=763">&#187;</a></span></div>
+	</div>
+
+</div>
+
+<!--runtime-->执行时间<!--runtime-->
+</body>
+</html>
