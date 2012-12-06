@@ -1,25 +1,18 @@
 <%
-'// --------------------------------------------------------------------------- //
-'// Project Name		: Boyle.ACL												//
-'// Author				: Boyle(boyle7[at]qq.com)								//
-'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
-'// Create Date			: 2011/08/02											//
-'// Version				: 4.0.121028											//
-'//																				//
-'// Date       By			 Description										//
-'// ---------- ------------- -------------------------------------------------- //
-'// 2012/10/29 Boyle		 系统数组操作类										//
-'// --------------------------------------------------------------------------- //
-
-'// --------------------------------------------------------------------------- //
-'// 作者：Coldstone(coldstone[at]qq.com)											//
-'// 网址：http://easp.lengshi.com/												//
-'// --------------------------------------------------------------------------- //
+'// +--------------------------------------------------------------------------
+'// | Boyle.ACL [系统数组操作类]
+'// +--------------------------------------------------------------------------
+'// | Copyright (c) 2008-2012 By Boyle. All rights reserved.
+'// +--------------------------------------------------------------------------
+'// | Licensed ( http://www.gnu.org/licenses/gpl.html )
+'// +--------------------------------------------------------------------------
+'// | Author: Boyle <boyle7[at]qq.com>
+'// +--------------------------------------------------------------------------
 
 Class Cls_Array
 
 	'// 定义公共命名对象
-	Public Size, OverError
+	Public Size, OverError, Symbol
 	
 	'// 定义私有命名对象
 	Private dicHash, dicMap
@@ -31,6 +24,7 @@ Class Cls_Array
 		
 		PrList = Array()
 		Size = 0
+		Symbol = " "
 		OverError = True
 		System.Error.E(41) = "下标越界"
 		System.Error.E(42) = "下标不能为空"
@@ -160,7 +154,7 @@ Class Cls_Array
 			Next
 			PrList = a
 		Else
-			arr = Split(a, " ")
+			arr = Split(a, Me.Symbol)
 			PrList = arr
 			Size = Ubound(PrList) + 1
 			If t = 0 Then Exit Sub

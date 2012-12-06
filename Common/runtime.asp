@@ -1,15 +1,19 @@
+<!--#include file="./common.asp"-->
 <%
-'// --------------------------------------------------------------------------- //
-'// Project Name		: Boyle.ACL												//
-'// Author				: Boyle(boyle7[at]qq.com)								//
-'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
-'// Create Date			: 2012/11/28											//
-'// Version				: 4.0.121028											//
-'//																				//
-'// Date       By			 Description										//
-'// ---------- ------------- -------------------------------------------------- //
-'// 2012/11/28 Boyle		 系统运行时文件										//
-'// --------------------------------------------------------------------------- //
+'// +--------------------------------------------------------------------------
+'// | Boyle.ACL [系统运行时文件]
+'// +--------------------------------------------------------------------------
+'// | Copyright (c) 2008-2012 By Boyle. All rights reserved.
+'// +--------------------------------------------------------------------------
+'// | Licensed ( http://www.gnu.org/licenses/gpl.html )
+'// +--------------------------------------------------------------------------
+'// | Author: Boyle <boyle7[at]qq.com>
+'// +--------------------------------------------------------------------------
+
+'// 设置输出的页面编码
+Response.Charset = System.Charset
+'// 当连接用户断开后自动释放资源
+If Not Response.IsClientConnected Then Terminate()
 
 '// 定义系统常量
 Private APP_PARAM: APP_PARAM       = ""
@@ -29,9 +33,6 @@ Private TEMP_PATH: TEMP_PATH       = RUNTIME_PATH & "Temp/"		'// 临时缓存目
 '// 加载运行时所需要的文件 并负责自动生成目录
 Function load_runtime_file()
 	With System.IO
-		'// 加载系统基础函数库
-		.Import BOYLE_PATH & "Common/common.asp"
-
 		'// 检查项目目录结构 如果不存在则自动创建
 		If Not .ExistsFolder(LIB_PATH) Then
 			'// 创建项目目录结构
@@ -79,7 +80,7 @@ End Function
 
 '// 加载运行时所需文件
 load_runtime_file()
-'// 设置输出的页面编码
-Response.Charset = System.Charset
+
+'// 设置调试模式是否开启
 System.Debug = APP_DEBUG
 %>

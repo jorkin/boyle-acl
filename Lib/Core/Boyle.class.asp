@@ -5,26 +5,26 @@
 <!--#include file="./Array.class.asp"-->
 <!--#include file="./Cache.class.asp"-->
 <!--#include file="./Error.class.asp"-->
-<!--#include file="./Upload.class.asp"-->
 <!--#include file="./Security.class.asp"-->
 <!--#include file="./Template.class.asp"-->
 
+<!--#include file="./Model.class.asp"-->
+
 <%
-'// --------------------------------------------------------------------------- //
-'// Project Name		: Boyle.ACL												//
-'// Author				: Boyle(boyle7[at]qq.com)								//
-'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
-'// Create Date			: 2011/08/02											//
-'// Version				: 4.0.121028											//
-'//																				//
-'// Date       By			 Description										//
-'// ---------- ------------- -------------------------------------------------- //
-'// 2012/10/29 Boyle		 系统接口初始化										//
-'// --------------------------------------------------------------------------- //
+'// +--------------------------------------------------------------------------
+'// | Boyle.ACL [系统接口初始化]
+'// +--------------------------------------------------------------------------
+'// | Copyright (c) 2008-2012 By Boyle. All rights reserved.
+'// +--------------------------------------------------------------------------
+'// | Licensed ( http://www.gnu.org/licenses/gpl.html )
+'// +--------------------------------------------------------------------------
+'// | Author: Boyle <boyle7[at]qq.com>
+'// +--------------------------------------------------------------------------
 
 Class Boyle
 	
 	'// 定义私有命名对象
+	Private PrModel
 	Private PrIO, PrData
 	Private PrJSON, PrText
 	Private PrArray, PrCache, PrError
@@ -55,6 +55,8 @@ Class Boyle
 		TerminateNamespace "Array": TerminateNamespace "Cache"
 		TerminateNamespace "Error": TerminateNamespace "Upload"
 		TerminateNamespace "Template": TerminateNamespace "Security"
+		
+		TerminateNamespace "Model"
 	End Sub
 	
 	'// 释放命名对象
@@ -63,6 +65,10 @@ Class Boyle
 	End Sub
 	
 	'// 声明模块单元
+	Public Property Get Model
+		If Not IsObject(PrModel) Then Set PrModel = New Cls_Model End If		
+		Set Model = PrModel
+	End Property
 	Public Property Get IO
 		If Not IsObject(PrIO) Then Set PrIO = New Cls_IO End If		
 		Set IO = PrIO
@@ -251,8 +257,7 @@ Class Boyle
 	
 	'// 初始化系统
 	Public Sub Run()
-		Dim C: Set C = Array.New
-		C.Hash = UCase(APP_PARAM)
+		Dim C: Set C = Array.NewHash(UCase(APP_PARAM))
 		
 		'// 配置数据库信息，系统默认使用ACCESS数据库
 		If Not Text.IsEmptyAndNull(C("DB.SOURCE")) Then
@@ -280,13 +285,4 @@ End Class
 Private vbTIME: vbTIME = Timer()
 '// 实例化类，不可更改变量名称
 Public System: Set System = New Boyle
-
-'// 当连接用户断开后自动释放资源
-If Not Response.IsClientConnected Then Terminate()
-
-'// 释放数据源和基类
-Private Sub Terminate()
-	System.Data.DisConnect()
-	Set System = Nothing
-End Sub
 %>

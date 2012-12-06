@@ -1,42 +1,34 @@
 <%
-'// --------------------------------------------------------------------------- //
-'// Project Name		: Boyle.ACL												//
-'// Author				: Boyle(boyle7[at]qq.com)								//
-'// Copyright Notice	: COPYRIGHT (C) 2011-2012 BY BOYLE.						//
-'// Create Date			: 2012/11/28											//
-'// Version				: 4.0.121028											//
-'//																				//
-'// Date       By			 Description										//
-'// ---------- ------------- -------------------------------------------------- //
-'// 2012/11/28 Boyle		 系统基础函数库										//
-'// --------------------------------------------------------------------------- //
+'// +--------------------------------------------------------------------------
+'// | Boyle.ACL [系统基础函数库]
+'// +--------------------------------------------------------------------------
+'// | Copyright (c) 2008-2012 By Boyle. All rights reserved.
+'// +--------------------------------------------------------------------------
+'// | Licensed ( http://www.gnu.org/licenses/gpl.html )
+'// +--------------------------------------------------------------------------
+'// | Author: Boyle <boyle7[at]qq.com>
+'// +--------------------------------------------------------------------------
+
+'// 获取和设置配置参数
+Public C: Set C = Dicary():C.CompareMode = 1
+
+'// 释放数据源和基类
+Private Sub Terminate()
+	System.Data.DisConnect()
+	Set System = Nothing
+	Set C = Nothing
+End Sub
 
 Public Sub A(byVal blParam)
 	System.IO.Import LIB_PATH & "Action/"&blParam&"Action.class.asp"
 End Sub
 
-Public Sub M(byVal blParam)
-	With System.Template
-		.File blParam, blParam&"/"&blParam&".html"
-
-		'.Assign "T_NAME", "Hello World!", False
-		
-		.Parse "OUT", blParam, False
-		.Out   "OUT"
-	End With
-End Sub
-
-Class Driver
-
-	Public Name
+Public Function M(byVal blParam)
+	Set M = System.Model.New(blParam)
+End Function
 	
-	'// 初始化命名对象
-	Private Sub Class_Initialize()
-
-	End Sub
-	
-	'// 释放命名对象
-	Private Sub Class_Terminate()
-	End Sub
-End Class
+'// 创建一个字典对象
+Public Function Dicary()
+	Set Dicary = Server.CreateObject("Scripting.Dictionary")
+End Function
 %>
