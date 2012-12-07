@@ -1170,7 +1170,7 @@ Class Cls_Array
 		ReDim arr1(UBound(arrVal, 2), UBound(arrVal))
 		For J = 0 To UBound(arr1, 2)
 			For I = 0 To UBound(arr1)
-				arr1(I, J) = arrVal(J, I)
+				arr1(I, J) = arrVal(J, I)&""
 			Next
 		Next
 		Swap = arr1

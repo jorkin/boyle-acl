@@ -171,41 +171,43 @@ Class Cls_Data
 	' */
 	Public Function Read(ByVal blSql)
 		'SELECT 列名称 FROM 表名称
-		Set Read = QueryX(blSql, 1, 1, 1)
+		Dim blRs: Set blRs = QueryX(blSql, 1, 1, 1)
+		If System.Text.IsEmptyAndNull(blRs) Then Read = Array(Empty) _
+		Else Set Read = blRs
 	End Function
 	
 	'/**
 	' * @功能说明: 添加记录
 	' * @参数说明: - blSql [string]: SQL查询语句
-	' * 		  - blArray [array]: 数组，格式：Array(Array(字段名称1,  字段值1), Array(字段名称2,字段值2),...)
+	' * 		  - blContent [array]: 数组，格式：Array(Array(字段名称1,  字段值1), Array(字段名称2,字段值2),...)
 	' * @返回值:   - [bool] 布尔值
 	' */
-	Public Function Create(ByVal blSql, ByVal blArray)
+	Public Function Create(ByVal blSql, ByVal blContent)
 		'INSERT INTO 表名称 VALUES (值1, 值2,....)
 		'INSERT INTO table_name (列1, 列2,...) VALUES (值1, 值2,....)
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
-		If Not blRs.Bof And Not blRs.Eof Then
-			blRs.AddNew
-			Dim I: For I = 0 To UBound(blArray)
-				blRs(""& blArray(I)(0) &"") = blArray(I)(1)
-			Next
-			blRs.Update: Create = True
-		Else Create = False End If
+		blRs.AddNew
+		'============将数组改为DIC字典，等待修改'
+		Dim I: For I = 0 To UBound(blContent)
+			blRs(""& blContent(I)(0) &"") = blContent(I)(1)
+		Next
+		blRs.Update: Create = True
 		blRs.Close: Set blRs = Nothing
 	End Function
 	
 	'/**
 	' * @功能说明: 修改记录
 	' * @参数说明: - blSql [string]: SQL查询语句
-	' * 		   - blArray [array]: 数组，格式：Array(Array(字段名称1,  字段值1), Array(字段名称2,字段值2),...)
+	' * 		   - blContent [array]: 数组，格式：Array(Array(字段名称1,  字段值1), Array(字段名称2,字段值2),...)
 	' * @返回值:   - [bool] 布尔值
 	' */
-	Public Function Update(ByVal blSql, ByVal blArray)
+	Public Function Update(ByVal blSql, ByVal blContent)
 		'UPDATE 表名称 SET 列名称 = 新值 WHERE 列名称 = 某值
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		If Not blRs.Bof And Not blRs.Eof Then
-			Dim I: For I = 0 To UBound(blArray)
-				blRs(""& blArray(I)(0) &"") = blArray(I)(1)
+			'============将数组改为DIC字典，等待修改'
+			Dim I: For I = 0 To UBound(blContent)
+				blRs(""& blContent(I)(0) &"") = blContent(I)(1)
 			Next
 			blRs.Update: Update = True
 		Else Update = False End If

@@ -17,12 +17,10 @@
 Class Cls_Template
 	Private dicLabel, tplXML
 	Private strRootPath, strCharset, strTagHead, strRootXMLNode, strBlockDataAtr
-	Private intDebugModule, intOpenAbsPath
-	Private strTemplatePath, strTemplateFilePath
-	Private strTemplateHtml, strResultHtml
+	Private strTemplatePath, strTemplateFilePath, strTemplateHtml, strResultHtml
 	Private strDateDiffTimeInterval, strTemplateCacheName, strTemplatePagePath
 	Private strTemplateCachePath, intTemplateCacheType, intTemplateCacheTime
-	Private strAppCacheName, strFileCachePath
+	Private intOpenAbsPath, strAppCacheName, strFileCachePath
 
 	'// 类初始化
 	Private Sub Class_Initialize()
@@ -33,7 +31,6 @@ Class Cls_Template
 		strTemplatePath = "." 				'模板存放目录
 		strRootXMLNode  = "//template"  	'模板根节点名称
 		strBlockDataAtr = "name"        	'块赋值辅助的属性
-		intDebugModule  = 0             	'调试模式，默认是0
 		intOpenAbsPath	= 1					'输出结果是否使用绝对路径 (0不用,1用)
 		
 		strDateDiffTimeInterval = "s"       		'表示相隔时间的类型：d日 h时 n分钟 s秒
@@ -50,7 +47,6 @@ Class Cls_Template
 	
 	'// 类退出
 	Private Sub Class_Terminate()
-		'注销对象
 		Set tplXML   = Nothing
 		Set dicLabel = Nothing
 	End Sub
@@ -69,6 +65,11 @@ Class Cls_Template
 	Public Property Let setTagHead(ByVal strVal)
 		strTagHead = LCase(Trim(strVal))
 	End Property
+	
+	'// 输出结果时，将路径转换为绝对路径
+	Public Property Let IsAbsPath(ByVal strVal)
+		intOpenAbsPath = strVal
+	End Property
 
 	'// 设置模板存放路径
 	Public Property Let setTemplatePath(ByVal strVal)
@@ -79,11 +80,6 @@ Class Cls_Template
 	End Property
 	Public Property Get Root()
 		Root = strTemplatePath
-	End Property
-	
-	'// 输出结果时，将路径转换为绝对路径
-	Public Property Let IsAbsPath(ByVal strVal)
-		intOpenAbsPath = strVal
 	End Property
 	
 	'// 设置模板文件路径
@@ -97,16 +93,19 @@ Class Cls_Template
 		'设置路径后立即加载模板
 		call loadCacheTemplate()
 	End Property
-	Public Property Let File(ByVal strVal)
-		setTemplateFile = strVal
+
+	'// 同时对模板路径和文件进行设置
+	Public Property Let File(ByVal strPath, ByVal strFile)
+		strTemplatePath = strPath
+		setTemplateFile = strFile
 	End Property
 	
 	'参数1: 缓存的名字,每个页面不能相同
 	'参数2: 0=都不缓存,1=内存缓存,2=文件缓存(缓存会缓存数据跟模板,开启缓存必须要有一个缓存名字)
 	'参数3: 缓存时间，单位是默认是秒
 	Public Property Let setCache(ByVal strVal)
-		Dim arr : arr = expSplit(strVal,"\s*,\s*")
-		Select Case Ubound(arr,1)
+		Dim arr: arr = expSplit(strVal, "\s*,\s*")
+		Select Case UBound(arr, 1)
 		Case 0
 			strTemplateCacheName = arr(0)
 		Case 1
@@ -131,35 +130,41 @@ Class Cls_Template
 	
 	'赋值
 	Public Property Let d(ByVal strTag, ByVal strVal)
-		Dim i,ary : ary = expSplit(strTag,"\s*,\s*")
+		Dim i, ary: ary = expSplit(strTag, "\s*,\s*")
 		For i = 0 To Ubound(ary)'多标签赋值
 			strTag = LCase(ary(i))
-			'//=============================================================对这里进行扩展，TAG为数组时，对标签进行批量替换
 			If strTag = strTagHead Then
+				'Dim tmpDic: Set tmpDic = Dicary()
 				Select Case TypeName(strVal)
 					Case "Recordset"'记录集
 						If strVal.State And Not strVal.Eof Then
-							Set DicLabel = RsToDic(strVal)
+							Set dicLabel = RsToDic(strVal, dicLabel)
 						End If
-					Case "Dictionary"
-						Set dicLabel = strVal
+					Case "Dictionary"'// 如果集合中已经存在标签，则进行追加。
+						Set dicLabel = RsToDic(strVal, dicLabel)
 					Case "Variant()"'如果传递的是数组
 						If Ubound(strVal) = 1 Then
 							Select Case TypeName(strVal(0))
 								Case "Recordset"
 									If strVal(0).State And Not strVal(0).eof Then
-										Set dicLabel = rsToDic(strVal(0))
+										Set dicLabel = RsToDic(strVal(0), dicLabel)
 									End If
 								Case "Variant()"
-									Set dicLabel = rsToDic(strVal(0))
+									Set dicLabel = RsToDic(strVal(0), dicLabel)
 							End Select
-							Dim aryField : aryField = expSplit(strVal(1),"\s*,\s*")'字段序列
-							If TypeName(aryField)="Variant()" Then Set dicLabel = redimField(dicLabel,aryField)'重命名字段
+							Dim aryField: aryField = expSplit(strVal(1), "\s*,\s*")'字段序列
+							If TypeName(aryField)="Variant()" Then Set dicLabel = RedimField(dicLabel, aryField)'重命名字段
 						End If
 				End Select
+				'// [BOYLE.ACL]如果集合中已经存在标签，则进行追加。
+				'If Not System.Text.IsEmptyAndNull(dicLabel) Then
+				''	Dim tmpKey: For Each tmpKey In tmpDic: dicLabel(tmpKey) = tmpDic.Item(tmpKey): Next
+				'Else Set dicLabel = tmpDic End If
+				'Set dicLabel = tmpDic
+				'Set tmpDic = Nothing
 			Else'普通赋值,支持字典，普通数据(字段值、字符串、数字等)
 				Select Case TypeName(strVal)
-					Case "Dictionary","Recordset"
+					Case "Dictionary", "Recordset"
 						Set dicLabel(strTag) = strVal
 					Case Else
 						dicLabel(strTag) = strVal
@@ -248,27 +253,21 @@ Class Cls_Template
 		End If
 	End Property
 	
-	'获得标签所有的值
+	'// 获得标签所有的值
 	Public Property Get GetLabelValues(ByVal strVal)
-		If IsObject(GetLabVal(strVal)) Then
-			Set GetLabelValues = GetLabVal(strVal)
-		Else
-			GetLabelValues = GetLabVal(strVal)
-		End If
+		If IsObject(GetLabVal(strVal)) Then Set GetLabelValues = GetLabVal(strVal) _
+		Else GetLabelValues = GetLabVal(strVal)
 	End Property
 	Public Property Get GetLabVal(ByVal strVal)
 		If LCase(strVal) = LCase(strTagHead) Then'如果返回所有值对象
-			Set GetLabelValues = dicLabel
+			Set GetLabVal = dicLabel
 		Else
-			If IsObject(dicLabel(strVal)) Then
-				Set GetLabelValues = dicLabel(strVal)
-			Else
-				GetLabelValues = dicLabel(strVal)
-			End If
+			If IsObject(dicLabel(strVal)) Then Set GetLabVal = dicLabel(strVal) _
+			Else GetLabVal = dicLabel(strVal)
 		End If
 	End Property
 	
-	'//输出部分
+	'// 输出部分
 	Public Property Get GetHtml
 		Select Case intTemplateCacheType
 			Case 3'结果内存缓存
@@ -305,12 +304,7 @@ Class Cls_Template
 		Response.Write(getHtml)
 	End Property
 
-	'// ----------------------私有函数部分----------------------
-	'//字典对象
-	'Public Function Dicary()
-	''	Set Dicary = Server.CreateObject("Scripting.Dictionary")
-	'End Function
-	
+	'// ----------------------私有函数部分----------------------	
 	'xmlDom对象
 	Private Function XmlDom(ByVal root)
 		Set XmlDom = Server.CreateObject("MSXML2.DOMDocument")
@@ -321,7 +315,7 @@ Class Cls_Template
 			XmlDom.appendChild(XmlDom.CreateElement(root))
 			'添加xml头部
 			Dim head: Set head = XmlDom.CreateProcessingInstruction("xml","version=""1.0"" encoding="""&strCharset&"""")
-			XmlDom.insertBefore head,XmlDom.childNodes(0)
+			XmlDom.insertBefore head, XmlDom.childNodes(0)
 		End If
 	End Function
 	
@@ -340,7 +334,7 @@ Class Cls_Template
 		Dim Match, SplitStr : SplitStr = a
 		Dim Sp : Sp = "#taihom.com@"
 			For Each Match in System.Text.MatchX(a, b)
-				SplitStr = Replace(SplitStr, Match.Value, Sp,1, -1, 0)
+				SplitStr = Replace(SplitStr, Match.Value, Sp, 1, -1, 0)
 			Next
 		expSplit = Split(SplitStr, Sp)
 	End Function
@@ -352,7 +346,7 @@ Class Cls_Template
 		If Not IsArray(aryVal) Then
 			Exit Function
 		Else
-			Dim i,iDo
+			Dim i, iDo
 			For i = 1 To 4
 				iDo = UBound(aryVal, i)
 				If Err Then Err.Clear: Exit Function _
@@ -425,7 +419,7 @@ Class Cls_Template
 			If strPath <> incPath Then html = Replace(html, Match.Value, LoadInclude(System.IO.Read(incPath), incPath), 1, -1, 0) _
 			Else html = Replace(html, Match.Value, "", 1, -1, 0)
 		Next
-		loadInclude = html
+		LoadInclude = html
 	End Function
 	
 	'编译模板
@@ -510,14 +504,9 @@ Class Cls_Template
 					conn = ReturnLabelValues(conn,strHead,objDIC,0)'获取CONN
 
 					If Len(sql) > 6 Then'如果SQL不为空
-						'On error resume next
-						If Len(conn) > 2 Then
-							Set conn = Eval(conn)
-						Else
-							Set conn = System.Data.Connection
-						End If
-						'If conn.State = 0 Then conn.Open() '如果数据库是关闭的就打开
-						Set DicData("data") = conn.execute(sql)
+						'On Error Resume Next
+						If Len(conn) > 2 Then Set conn = Eval(conn) Else Set conn = System.Data.Connection
+						Set DicData("data") = System.Data.Read(sql)
 					End If
 				End If
 				
@@ -549,7 +538,7 @@ Class Cls_Template
 								'获取字段值
 								Set dicRS = returnData(k) : dicRS("i") = k + 1
 								'重命名字段
-								If TypeName(DicData("field"))="Variant()" Then Set dicRS = redimField(dicRS,DicData("field"))
+								If TypeName(DicData("field"))="Variant()" Then Set dicRS = RedimField(dicRS, DicData("field"))
 								'数据重定义或渲染
 								If Right(DicData("dr"),7)="(dicRS)" Then Eval(DicData("dr"))
 								'返回块的值
@@ -584,15 +573,14 @@ Class Cls_Template
 					DicData("eof") = 1
 				Else
 					aryTemp = rs.getRows()
-					ReDim aryData(Ubound(aryTemp,2),Ubound(aryTemp,1))
-					ReDim returnData(Ubound(aryTemp,2))
-					
+					ReDim aryData(Ubound(aryTemp, 2), Ubound(aryTemp, 1))
+					ReDim returnData(Ubound(aryTemp, 2))					
 					For recIndex = 0 To UBound(aryTemp,2)'行
 						Set dic = Dicary()
 						For fldIndex = 0 To UBound(aryTemp)'字段
 							'aryData(recIndex,fldIndex) = aryTemp(fldIndex,recIndex)&""
-							dic(LCase(rs.Fields(fldIndex).Name)) = aryTemp(fldIndex,recIndex)&""
-							dic(fldIndex) = aryTemp(fldIndex,recIndex)&""
+							dic(LCase(rs.Fields(fldIndex).Name)) = aryTemp(fldIndex, recIndex)&""
+							dic(fldIndex) = aryTemp(fldIndex, recIndex)&""
 						Next
 						Set returnData(recIndex) = dic'返回数组
 					Next
@@ -607,14 +595,14 @@ Class Cls_Template
 							DicData("eof") = 1
 						Else
 							aryTemp = rs.getRows
-							ReDim aryData(Ubound(aryTemp,2),Ubound(aryTemp))
-							ReDim returnData(Ubound(aryTemp,2))
-							For recIndex = 0 To UBound(aryTemp,2)'行
+							ReDim aryData(Ubound(aryTemp, 2), Ubound(aryTemp))
+							ReDim returnData(Ubound(aryTemp, 2))
+							For recIndex = 0 To UBound(aryTemp, 2)'行
 								Set dic = Dicary()
 								For fldIndex = 0 To UBound(aryTemp)'字段
 									'aryData(recIndex,fldIndex) = aryTemp(fldIndex,recIndex)&""
-									dic(LCase(rs.Fields(fldIndex).Name)) = aryTemp(fldIndex,recIndex) & ""
-									dic(fldIndex) = aryTemp(fldIndex,recIndex) & ""
+									dic(LCase(rs.Fields(fldIndex).Name)) = aryTemp(fldIndex, recIndex) & ""
+									dic(fldIndex) = aryTemp(fldIndex, recIndex) & ""
 								Next
 								Set returnData(recIndex) = dic'返回数组
 							Next
@@ -650,10 +638,8 @@ Class Cls_Template
 									Set returnData(recIndex) = dic'返回数组
 								Next
 							End If
-						Else
-							returnData  = Null
-						End If
-					Case Else'
+						Else returnData = Null End If
+					Case Else
 						returnData = aryTemp
 					End Select
 				End If
@@ -671,8 +657,10 @@ Class Cls_Template
 		DicData("returndata") = returnData
 		
 		Set GetBlockData = DicData
+		Set dic = Nothing
 	End Function
-	'格式化值输出,参数：值，属性
+
+	'// 格式化值输出,参数：值，属性
 	Private Function FormatValues(ByVal strVal,ByVal dicAttr)
 		Dim return : return = strVal
 		Dim key,val
@@ -711,24 +699,24 @@ Class Cls_Template
 	End Function
 	
 	'重定义字段数据
-	Private Function RedimField(ByVal DicData,aryField)
-		Dim i
-		For i = 0 To Ubound(aryField)
+	Private Function RedimField(ByVal DicData, aryField)
+		Dim i: For i = 0 To Ubound(aryField)
 			If DicData.Exists(i) Then DicData(LCase(aryField(i))) = DicData(i)
 		Next
 		Set RedimField = DicData
 	End Function
 	
 	'记录集转为字典
-	Private Function RsToDic(ByVal data)
-		Dim i,  dic
-		Set dic = Dicary()
+	Private Function RsToDic(ByVal data, ByVal dic)
+		Dim i
 		Select Case TypeName(data)
 			Case "Recordset"'数据集
 				For i = 0 To data.Fields.Count - 1 '字段序列
 					dic(LCase(data.Fields(i).Name)) = data(i) & ""'字段名
 					dic(i) = data(i) & ""'字段下标
 				Next
+			Case "Dictionary"'// 如果集合中已经存在标签，则进行追加。
+				Dim tmpKey: For Each tmpKey In data: dic(tmpKey) = data.Item(tmpKey): Next
 			Case "Variant()"'数组
 				For i = 0 To Ubound(data) '字段序列
 					dic(i) = data(i) & "" '字段下标
@@ -740,31 +728,27 @@ Class Cls_Template
 	'ExecuteTemplate
 	Private Function ExecuteTemplate(ByVal strHtml)
 		Dim html : html = strHtml
-		Dim Matchs
-		Set Matchs = System.Text.MatchX(html,"\{(?:if)\s+([^}]*?)?\}")
+		Dim Matchs: Set Matchs = System.Text.MatchX(html, "\{(?:if)\s+([^}]*?)?\}")
 		If Matchs.Count Then
-			html = System.Text.ReplaceX(html,"\{(?:if)\s+([^}]*?)?\}","<"&"%If $1 Then%"&">")
-			html = System.Text.ReplaceX(html,"\{(?:elseif|ef)\s+([^}]*?)?\}","<"&"%ElseIf $1 Then%"&">")
-			html = System.Text.ReplaceX(html,"\{(?:else\s+if)\s+([^}]*?)?\}","<"&"%Else If $1 Then%"&">")
-			html = System.Text.ReplaceX(html,"\{else\s*\}","<"&"%Else%"&">")
-			html = System.Text.ReplaceX(html,"\{/if\}","<"&"%End If%"&">")
+			html = System.Text.ReplaceX(html, "\{(?:if)\s+([^}]*?)?\}", "<"&"%If $1 Then%"&">")
+			html = System.Text.ReplaceX(html, "\{(?:elseif|ef)\s+([^}]*?)?\}", "<"&"%ElseIf $1 Then%"&">")
+			html = System.Text.ReplaceX(html, "\{(?:else\s+if)\s+([^}]*?)?\}", "<"&"%Else If $1 Then%"&">")
+			html = System.Text.ReplaceX(html, "\{else\s*\}", "<"&"%Else%"&">")
+			html = System.Text.ReplaceX(html, "\{/if\}", "<"&"%End If%"&">")
 		End If
 		'Execute(html)
-		Set Matchs = System.Text.MatchX(html,"\<"&"%([\s\S]*?)%"&"\>")
+		Set Matchs = System.Text.MatchX(html, "\<"&"%([\s\S]*?)%"&"\>")
 		If Matchs.Count Then'ASP代码支持，还不是那么完美,如果要解决，就要在下面的代码里面做处理
-		Dim tmp : tmp = expSplit(html,"\<"&"%([\s\S]*?)%"&"\>")
-			Dim i
+		Dim tmp : tmp = expSplit(html, "\<"&"%([\s\S]*?)%"&"\>")			
 			Dim htm : htm = "Dim str : str = """"" & vbcrlf
-			For i = 0 To UBound(tmp)
+			Dim i: For i = 0 To UBound(tmp)
 				If Not System.Text.IsEmptyAndNull(System.Text.ReplaceX(tmp(i), "[\n\t\r|]|(\s+|&nbsp;|　)+", "")) Then
-					tmp(i) = Replace(Replace(tmp(i),"<"&"%","&lt;%"),"%"&">","%&gt;")
+					tmp(i) = Replace(Replace(tmp(i), "<"&"%", "&lt;%"), "%"&">", "%&gt;")
 					htm = htm & "str = str & tmp("&i&")" & vbcrlf
 				End If
 				If i <= (Matchs.Count - 1) Then htm = htm & Matchs(i).SubMatches(0) & vbcrlf
-			Next
-			
-			Execute(htm)
-			html = str
+			Next			
+			Execute(htm): html = str
 		End If
 		Set Matchs = Nothing
 		ExecuteTemplate = html
@@ -772,37 +756,36 @@ Class Cls_Template
 	
 	'IF
 	Private Function ReturnIfLabel(ByVal strHtml,ByVal strHead,ByVal dicRS)
-		Dim html : html = strHtml
-		Dim Match
-		For Each Match in System.Text.MatchX(strHtml,"\{(?:if|elseif|ef)\s+([^}]*?)?\}")
-			html = Replace(html,Match.value,returnLabelValues(Match.value,strHead,dicRS,0))
+		Dim Match, html: html = strHtml
+		For Each Match in System.Text.MatchX(strHtml, "\{(?:if|elseif|ef)\s+([^}]*?)?\}")
+			html = Replace(html, Match.Value, returnLabelValues(Match.Value, strHead, dicRS, 0))
 		Next
 		ReturnIfLabel = html
 	End Function
 	
-	'标签属性值替换输出
-	Private Function ReturnLabelValues(ByVal strVal,ByVal strHead,ByVal dicObj,ByVal key)
-		Dim return,html : html = strVal
-		Dim val,Match
+	'// 标签属性值替换输出
+	Private Function ReturnLabelValues(ByVal strVal, ByVal strHead, ByVal dicObj, ByVal key)
+		Dim return, html : html = strVal
+		Dim val, Match
 		Dim Pattern(2)
-		Pattern(0) = "\((?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^)][\s\S]*?)?\s*\)"'()标签
-		Pattern(1) = "\{(?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^}][\s\S]*?)?\s*\}"'{}标签
+		Pattern(0) = "\((?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/_]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^)][\s\S]*?)?\s*\)"'()标签
+		Pattern(1) = "\{(?:" & expEncode(LCase(strHead)) &"){1}([a-zA-Z0-9\/_]+)((?:\[@?(?:\w+=.*?)?\])?\.?(?:\w+)?(?:\:\w+)?)?(\s+[^}][\s\S]*?)?\s*\}"'{}标签
 		'(0)'标签名  (1)'路径  (2)'属性
-		For Each Match in System.Text.MatchX(strVal,Pattern(key))
+		For Each Match in System.Text.MatchX(strVal, Pattern(key))
 			If Len(Match.SubMatches(1)) Then'如果是通过路径获取属性
-				return = getAttr(Match.SubMatches(0)&Match.SubMatches(1))
+				return = GetAttr(Match.SubMatches(0)&Match.SubMatches(1))
 			Else
 				return = dicObj(LCase(Match.SubMatches(0)))
+			End If
+			If Len(Match.SubMatches(2)) > 1 Then
+				return = FormatValues(return, GetBlockAttr(Match.SubMatches(2)))
 			End If			
-			If Len(Match.SubMatches(2))>1 Then
-				return = formatValues(return,getBlockAttr(Match.SubMatches(2)))
-			End If			
-			html = Replace(html,Match.Value,return,1,-1,0)
+			html = Replace(html, Match.Value, return, 1, -1, 0)
 		Next
 		ReturnLabelValues = html
 	End Function
 	
-	'返回一个标签节点的信息
+	'// 返回一个标签节点的信息
 	Private Function GetLabelNode(ByVal node)
 		Dim aryLabel(6)
 		aryLabel(0) = node.nodeName '节点名称
@@ -820,7 +803,7 @@ Class Cls_Template
 		GetLabelNode = aryLabel
 	End Function
 	
-	'创建一个模板节点
+	'// 创建一个模板节点
 	Private Function GetTemplateNode(ByVal arrayTags)
 		'XML操作部分
 		Dim subNode0,subNode1,subNode2,subNode3,subNode4,subNode5
@@ -828,62 +811,48 @@ Class Cls_Template
 		Set subNode1 = tplXML.CreateElement("attr") : subNode1.appendChild(tplXML.createCDATASection(arrayTags(2)))'标签属性
 		Set subNode2 = tplXML.CreateElement("html") : subNode2.appendChild(tplXML.createCDATASection(arrayTags(7)))'模板内容
 		Set subNode3 = tplXML.CreateElement("body") : subNode3.appendChild(tplXML.createCDATASection(arrayTags(5)))'循环体部分
-		Set subNode4 = tplXML.CreateElement("null") : subNode4.appendChild(tplXML.createCDATASection(arrayTags(4)))'empty标签
-		
+		Set subNode4 = tplXML.CreateElement("null") : subNode4.appendChild(tplXML.createCDATASection(arrayTags(4)))'empty标签		
 		'设置节点的属性
-		Dim keys,tagAttr
-		Set tagAttr = getBlockAttr(arrayTags(2))'提取属性部分，名=值
-
+		Dim keys, tagAttr: Set tagAttr = GetBlockAttr(arrayTags(2))'提取属性部分，名=值
 		'添加子节点
 		subNode0.appendChild(subNode1)
-		subNode0.appendChild(subNode2)
-		
+		subNode0.appendChild(subNode2)		
 		If arrayTags(6) Then'如果是闭合标签
 			subNode0.appendChild(subNode3)
 			subNode0.appendChild(subNode4)
 			subNode0.SetAttribute "nodepath" , arrayTags(8) '辅助路径属性
-
-			If Len(arrayTags(2))>1 Then
-				Dim strSql
-					strSql = System.Text.ReplaceX(tagAttr("sql"),"^(\w+)\(\s*(\w+)\s*,\s*(\w+)\s*\)$","$1(Tags,tagAttr)")'找SQL
-					IF Right(strSql,14) = "(Tags,tagAttr)" Then
-					strSql = Eval(strSql)
-					End If
+			If Len(arrayTags(2)) > 1 Then
+				Dim strSql: strSql = System.Text.ReplaceX(tagAttr("sql"), "^(\w+)\(\s*(\w+)\s*,\s*(\w+)\s*\)$", "$1(Tags,tagAttr)")'找SQL
+				If Right(strSql, 14) = "(Tags,tagAttr)" Then strSql = Eval(strSql) End If
 				subNode0.SetAttribute "sql" , strSql'SQL属性
-			End If
-			
+			End If			
 			'递归调用，这里是实现嵌套循环的关键
 			compileTemplate Array(arrayTags(3),arrayTags(0)),subNode0 
-		End If
-		
+		End If		
 		'添加属性到节点中
 		For Each keys in tagAttr
 			subNode0.SetAttribute keys,tagAttr(keys)
-		Next
-		
+		Next		
 		Set getTemplateNode = subNode0
 	End Function
 	
-	'分离EMPTY和循环体(代码,标签头)
+	'// 分离EMPTY和循环体(代码,标签头)
 	Private Function GetCloseBlock(ByVal aryTags)
 		Dim ary(1)
-		If Len(aryTags(0))>0 Then
-			Dim Match,strSubPattern
-				strSubPattern = "\{((?:empty|null|eof|nodata)\:"&aryTags(1)&")\s*?(?:[\s\S.]*?)\/?\}(?:([\s\S.]*?)\{/\1\})"
-			Set Match = System.Text.MatchX(aryTags(0),strSubPattern)
-			
+		If Len(aryTags(0)) > 0 Then
+			Dim Match, strSubPattern
+			strSubPattern = "\{((?:empty|null|eof|nodata)\:"&aryTags(1)&")\s*?(?:[\s\S.]*?)\/?\}(?:([\s\S.]*?)\{/\1\})"
+			Set Match = System.Text.MatchX(aryTags(0), strSubPattern)
 			If Match.Count Then'如果有 empty 标签
 				ary(0) = Match(0).SubMatches(1) 'empty标签
-				ary(1) = System.Text.ReplaceX(aryTags(0),strSubPattern,"") '循环体部分
-			Else
-				ary(1) = aryTags(0)
-			End If
+				ary(1) = System.Text.ReplaceX(aryTags(0), strSubPattern, "") '循环体部分
+			Else ary(1) = aryTags(0) End If
 			Set Match = Nothing
 		End If
 		GetCloseBlock = ary
 	End Function
 	
-	'获得属性列表,返回名值的字典对象
+	'// 获得属性列表,返回名值的字典对象
 	Private Function GetBlockAttr(ByVal val)
 		Dim i
 		Dim Match,Matches,dicAttr
@@ -894,16 +863,17 @@ Class Cls_Template
 				dicAttr(val.attributes(i).nodeName) = val.attributes(i).nodeTypedValue
 			Next
 		Else'存储名值对象
-			Set Matches = System.Text.MatchX( val ,"([a-zA-Z0-9]+)\s*=\s*(['|""])([\s\S.]*?)\2")
+			Set Matches = System.Text.MatchX(val ,"([a-zA-Z0-9]+)\s*=\s*(['|""])([\s\S.]*?)\2")
 			For Each Match in Matches'0=属性,2=属性值
 				dicAttr(LCase(Trim(Match.SubMatches(0)))) = Match.SubMatches(2)
 			Next
 			Set Matches = Nothing
 		End If
 		Set GetBlockAttr = dicAttr
+		Set dicAttr = Nothing
 	End Function
 	
-	'选择一个带路径的节点,返回解析分解后的路径
+	'// 选择一个带路径的节点,返回解析分解后的路径
 	Private Function SelectLabelNode(ByVal strPath)
 		Dim Match,Matches : strPath = LCase(Trim(strPath))'标签转换成小写
 		Set Matches = System.Text.MatchX( strPath ,"([a-zA-Z0-9\/]+)(\[@?((\w+)=(.*?))?\])?\.?(\w+)?(\:(body|empty|html|null|eof))?")
@@ -914,25 +884,22 @@ Class Cls_Template
 			ary(1) = Matches(0).SubMatches(2) 'attr=2
 			ary(2) = Matches(0).SubMatches(5) 'attr2
 			ary(3) = Matches(0).SubMatches(6) ':body|:empty|:html
-				
-			Dim nodesPath'指定辅助路径
-			nodesPath = strRootXMLNode & "/" & ary(0)
-			If Len(Matches(0).SubMatches(1))>4 Then
+			'指定辅助路径
+			Dim nodesPath: nodesPath = strRootXMLNode & "/" & ary(0)
+			If Len(Matches(0).SubMatches(1)) > 4 Then
 				nodesPath = nodesPath & "[@" &ary(1)& "]"
 			End If
 			
 			ary(4) = nodesPath'选择的路径
 			SelectLabelNode = ary
-		Else
-			SelectLabelNode = Null
-		End If
+		Else SelectLabelNode = Null End If
 		Set Matches = Nothing
 	End Function
 	
-	'设置节点属性
+	'// 设置节点属性
 	Private Function SetLabelAttr(ByVal strPath, ByVal strVal)
 		Dim ary,node,i,ii
-		strPath = Split(strPath,",")
+		strPath = Split(strPath, ",")
 		For ii = 0 To Ubound(strPath)
 			ary = SelectLabelNode(strPath(ii))'选择标签节点
 			If IsArray(ary) = False Then Exit Function
@@ -962,14 +929,6 @@ Class Cls_Template
 			End Select
 		Next
 	End Function
-
-	'抛出错误
-	Private Sub errRaise(ByVal strVal)
-		If intDebugModule Then'如果开启错误提示
-			Response.Write(strVal)
-			Response.End()
-		End If
-	End Sub
 
 	'// 输出结果输出模板的绝对路径
 	Private Function AbsPath(ByVal strCode)

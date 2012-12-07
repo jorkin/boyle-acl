@@ -37,13 +37,11 @@ Class Boyle
 	
 	'// 初始化命名对象
 	Private Sub Class_Initialize()
-	
+		'On Error Resume Next
 		'// 定义系统名称和版本
-		Name = "Boyle.ACL": Version = "4.0.121028"
-		
+		Name = "Boyle.ACL": Version = "4.0.121028"		
 		'// 配置系统所使用的文件编码，系统默认采用UTF-8编码
-		PrCharset = "UTF-8"
-		
+		PrCharset = "UTF-8"		
 		'// 系统默认关闭调试模式
 		PrDebug = False
 	End Sub

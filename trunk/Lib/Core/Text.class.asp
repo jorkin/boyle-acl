@@ -13,7 +13,7 @@ Class Cls_Text
 	
 	'// 定义私有命名对象
 	Private PrRegExp
-	
+
 	'// 初始化类
 	Private Sub Class_Initialize()
 	End Sub
