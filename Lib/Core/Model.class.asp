@@ -71,10 +71,9 @@ Class Cls_Model
 			Select Case VarType(bValue)
 				Case 0, 1:
 					PrDic(bField) = ""
-				Case 2, 3, 4, 5, 6, 7, 8:
+				Case 2, 3, 4, 5, 6, 7, 8, 11:
 					PrDic(bField) = bValue
-				Case 9:
-				'Case 11:
+				'Case 9:
 				Case 8192, 8194, 8204, 8209:
 					If UCase(bField) = "WHERE" Then
 						PrDic(bField) = JoinWhere(bValue)
@@ -107,43 +106,30 @@ Class Cls_Model
 	End Function
 
 	'// 新增数据
-	Public Sub Add()
-	End Sub
+	Public Function Add()
+		With System.Data
+			PrDic("SQL") = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
+			Add = .Create(PrDic("SQL"), bValue)
+		End With
+	End Function
 
 	'// 保存数据
-	Public Sub Save()
-	End Sub
+	Public Function Save(ByVal bValue)
+		With System.Data
+			PrDic("SQL") = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
+			Save = .Update(PrDic("SQL"), bValue)
+		End With
+	End Function
 
 	'// 查询数据
 	Public Function [Select]()
 		With System.Data
-			Dim blSQL: blSQL = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
-			PrDic("SQL") = blSQL
-			Set [Select] = .Read(blSQL)
+			PrDic("SQL") = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
+			Set [Select] = .Read(PrDic("SQL"))
 		End With
 	End Function
 
-	'// 删除数据
-	Public Sub Delete()
-	End Sub
-
-	'// 设置记录的某个字段值
-	Public Function setField()
-	End Function
-
-	'// 获取一条记录的某个字段值
-	Public Function getField()
-	End Function
-
-	'// 字段值增长
-	Public Function setInc()
-	End Function
-
-	'// 字段值减少
-	Public Function setDec()
-	End Function
-
-	'// 操作分页
+	'// 查询数据并分页
 	Public Function Pager()
 		With System.Data
 			PrDic("SQL") = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
@@ -154,6 +140,92 @@ Class Cls_Model
 			'// 返回数组，顺序依次为 [0]记录集列表，[1]分页导航码，[2]分页参数
 			Pager = Array(blList, .Page.Out, .Page.Parameters(""))
 		End With
+	End Function
+
+	'// 删除数据
+	Public Function Delete(ByVal bValue)
+		If Not System.Text.IsEmptyAndNull(bValue) Then PrDic("WHERE") = bValue
+		PrDic("SQL") = System.Data.ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
+		Delete = System.Data.Delete(PrDic("SQL"))
+	End Function
+
+	'// 统计查询
+	'// 统计数量，参数是统计的字段名（可选）
+	Public Function Count(ByVal bValue)
+		With System.Text
+			Dim blField: blField = .IIF(Not .IsEmptyAndNull(bValue), bValue, "*")
+			Dim blSQL: blSQL = "Select Count("&blField&") From "&PrTable&""
+			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
+		End With
+		Count = System.Data.Read(PrDic("SQL"))(0)
+	End Function
+	'// 获取最大值，参数是要统计的字段名（必须）
+	Public Function Max(ByVal bValue)
+		With System.Text
+			Dim blSQL: blSQL = "Select Max("&bValue&") From "&PrTable&""
+			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
+		End With
+		Max = System.Data.Read(PrDic("SQL"))(0)
+	End Function
+	'// 获取最小值，参数是要统计的字段名（必须）
+	Public Function Min(ByVal bValue)
+		With System.Text
+			Dim blSQL: blSQL = "Select Min("&bValue&") From "&PrTable&""
+			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
+		End With
+		Min = System.Data.Read(PrDic("SQL"))(0)
+	End Function
+	'// 获取平均值，参数是要统计的字段名（必须）
+	Public Function Avg(ByVal bValue)
+		With System.Text
+			Dim blSQL: blSQL = "Select Avg("&bValue&") From "&PrTable&""
+			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
+		End With
+		Avg = System.Data.Read(PrDic("SQL"))(0)
+	End Function
+	'// 获取总分，参数是要统计的字段名（必须）
+	Public Function Sum(ByVal bValue)
+		With System.Text
+			Dim blSQL: blSQL = "Select Sum("&bValue&") From "&PrTable&""
+			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
+		End With
+		Sum = System.Data.Read(PrDic("SQL"))(0)
+	End Function
+
+	'// 设置记录的某个字段值
+	Public Function setField()
+	End Function
+
+	'// 获取记录的某个字段值
+	Public Function getField()
+	End Function
+
+	'// 字段值增长，只对单条记录进行更改
+	'// bValue[:step]
+	Public Function setInc(ByVal bValue)
+		With System.Text
+			Dim blField: blField = .Separate(bValue)
+			Dim blStep: blStep = .IIF(Not .IsEmptyAndNull(blField(1)), blField(1), 1)
+			Dim blSQL: blSQL = "Select Top 1 "&blField(0)&" From "&PrTable&""
+			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
+			Dim blSourceValue: blSourceValue = System.Data.Read(PrDic("SQL"))(0)
+			blSourceValue = .IIF(IsNumeric(blSourceValue), blSourceValue, 0)
+		End With
+		setInc = System.Data.Update(PrDic("SQL"), Array(Array(blField(0), blSourceValue + blStep)))
+	End Function
+
+	'// 字段值减少，只对单条记录进行更改
+	'// bValue[:step]
+	Public Function setDec(ByVal bValue)
+		With System.Text
+			Dim blField: blField = .Separate(bValue)
+			Dim blStep: blStep = .IIF(Not .IsEmptyAndNull(blField(1)), blField(1), 1)
+			Dim blSQL: blSQL = "Select Top 1 "&blField(0)&" From "&PrTable&""
+			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
+			Dim blSourceValue: blSourceValue = System.Data.Read(PrDic("SQL"))(0)
+			blSourceValue = .IIF(IsNumeric(blSourceValue), blSourceValue, 0)
+		End With
+		setDec = System.Data.Update(PrDic("SQL"), Array(Array(blField(0), blSourceValue - blStep)))
 	End Function
 End Class
 %>

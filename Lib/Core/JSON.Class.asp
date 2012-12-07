@@ -21,7 +21,7 @@ Class Cls_JSON
 	Public Kind '0 = object, 1 = array
 	
 	Private Sub Class_Initialize
-		Set Collection = CreateObject("Scripting.Dictionary")
+		Set Collection = Dicary()
 		
 		'// 名称是否用引号
 		QuotedVars = True
