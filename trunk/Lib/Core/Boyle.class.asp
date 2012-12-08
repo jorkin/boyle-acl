@@ -207,7 +207,7 @@ Class Boyle
 			Case "1", "STR":	'// 当目标标签为空时，接收所有GET数据
 				If Text.IsEmptyAndNull(blParam) Then blContent = Request.QueryString() _
 				Else blContent = Request.QueryString(blParam)
-				blContent = Text.ToString(blContent, "")
+				'blContent = Text.ToString(blContent, "")
 			Case "2", "FORM":	'// 当目标标签为空时，接收所有表单数据
 								'// 如果表单中存在文件域，不进行相关操作
 				Dim blHttpContentType, blFormType

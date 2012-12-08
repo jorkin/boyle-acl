@@ -45,7 +45,7 @@ Class Cls_Model
 			Dim tmpDic, tmpKey
 			Select Case VarType(bValue)
 				Case 0, 1: '// vbEmpty,vbNull
-					Set tmpDic = Dicary()
+					Set tmpDic = Dicary(): PrDic.RemoveAll'// 清空所有配置参数
 				Case 2, 3, 4, 5: '// vbInteger,vbLong,vbSingle,vbDouble
 					Set tmpDic = System.Text.ToHashTable(Array("LIMIT:"&bValue))
 				'Case 6: '// vbCurrency
@@ -71,8 +71,8 @@ Class Cls_Model
 			Select Case VarType(bValue)
 				Case 0, 1:
 					PrDic(bField) = ""
-				Case 2, 3, 4, 5, 6, 7, 8, 11:
-					PrDic(bField) = bValue
+				'Case 2, 3, 4, 5, 6, 7, 8, 11:
+				''	PrDic(bField) = bValue
 				'Case 9:
 				Case 8192, 8194, 8204, 8209:
 					If UCase(bField) = "WHERE" Then
@@ -80,6 +80,8 @@ Class Cls_Model
 					ElseIf UCase(bField) = "FIELD" Then
 						PrDic(bField) = System.Array.NewArray(bValue).J(",")
 					Else PrDic(bField) = bValue(0) End If
+				Case Else
+					PrDic(bField) = bValue
 			End Select
 		End If
 	End Property
@@ -106,7 +108,7 @@ Class Cls_Model
 	End Function
 
 	'// 新增数据
-	Public Function Add()
+	Public Function Add(ByVal bValue)
 		With System.Data
 			PrDic("SQL") = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
 			Add = .Create(PrDic("SQL"), bValue)
@@ -134,7 +136,7 @@ Class Cls_Model
 		With System.Data
 			PrDic("SQL") = .ToSQL(Array(PrTable, PrDic("FIELD"), PrDic("LIMIT")), PrDic("WHERE"), PrDic("ORDER"))
 			'// 将所有参数传递给分页类
-			.Page.Parameters("") = Me.Parameters("")			
+			.Page.Parameters("") = Me.Parameters("")
 			'// 对得到的结果进行行列对换
 			Dim blList: blList = System.Array.Swap(.Page.Run)
 			'// 返回数组，顺序依次为 [0]记录集列表，[1]分页导航码，[2]分页参数
@@ -190,14 +192,6 @@ Class Cls_Model
 			PrDic("SQL") = .IIF(Not .IsEmptyAndNull(PrDic("WHERE")), (blSQL & " Where (" & PrDic("WHERE")) & ")", blSQL)
 		End With
 		Sum = System.Data.Read(PrDic("SQL"))(0)
-	End Function
-
-	'// 设置记录的某个字段值
-	Public Function setField()
-	End Function
-
-	'// 获取记录的某个字段值
-	Public Function getField()
 	End Function
 
 	'// 字段值增长，只对单条记录进行更改

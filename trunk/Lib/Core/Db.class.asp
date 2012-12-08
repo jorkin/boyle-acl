@@ -19,6 +19,12 @@ Class Cls_Data
 
 	'// 初始化资源
 	Private Sub Class_Initialize()
+		System.Error.E(18) = "获取随机记录失败，请输入要取的记录数量！"
+		System.Error.E(19) = "获取随机记录失败，请在表名后输入:ID字段的名称！"
+		System.Error.E(20) = "向数据库添加记录出错！"
+		System.Error.E(21) = "更新数据库记录出错！"
+		System.Error.E(22) = "从数据库删除数据出错！"
+		System.Error.E(23) = "从数据库获取数据出错！"
 		System.Error.E(200) = "错误的参数个数！"
 		System.Error.E(201) = "数据库服务器端连接错误，请检查数据库连接信息是否正确！"
 		System.Error.E(202) = "仅支持从MS SQL Server数据库中调用存储过程！"
@@ -77,9 +83,8 @@ Class Cls_Data
 		If Err Then
 			m_Conn.Close: Set m_Conn = Nothing
 			System.Error.Raise 201
-			Response.End()
-		End If
-		Err.Clear
+			Err.Clear: Response.End()
+		End If		
 	End Sub
 
 	'// 关闭并释放数据库连接
@@ -157,11 +162,13 @@ Class Cls_Data
 	' * @返回值:   - [recordset] 记录集
 	' */
 	Public Function QueryX(ByVal blSource, ByVal blCursorType, ByVal blLockType, ByVal blOptions)
+		On Error Resume Next
 		Dim blRs: Set blRs = Server.CreateObject("ADODB.Recordset")
 		blRs.Open blSource, Connection, blCursorType, blLockType, blOptions
 		System.Queries = 1
 		Set QueryX = blRs
 		Set blRs = Nothing
+		If Err.Number <> 0 Then System.Error.Raise 23: Err.Clear
 	End Function
 	
 	'/**
@@ -185,12 +192,13 @@ Class Cls_Data
 	Public Function Create(ByVal blSql, ByVal blContent)
 		'INSERT INTO 表名称 VALUES (值1, 值2,....)
 		'INSERT INTO table_name (列1, 列2,...) VALUES (值1, 值2,....)
+		On Error Resume Next
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
 		blRs.AddNew
-		'============将数组改为DIC字典，等待修改'
 		Dim I: For I = 0 To UBound(blContent)
 			blRs(""& blContent(I)(0) &"") = blContent(I)(1)
 		Next
+		If Err Then System.Error.Raise 20: Create = False: Err.Clear: Exit Function
 		blRs.Update: Create = True
 		blRs.Close: Set blRs = Nothing
 	End Function
@@ -203,16 +211,20 @@ Class Cls_Data
 	' */
 	Public Function Update(ByVal blSql, ByVal blContent)
 		'UPDATE 表名称 SET 列名称 = 新值 WHERE 列名称 = 某值
+		On Error Resume Next
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
-		If Not blRs.Bof And Not blRs.Eof Then
-			'============将数组改为DIC字典，等待修改'
-			Dim I: For I = 0 To UBound(blContent)
-				blRs(""& blContent(I)(0) &"") = blContent(I)(1)
-			Next
-			blRs.Update: Update = True
+		If Not System.Text.IsEmptyAndNull(blRs) Then
+			'// 修改所有符合条件的记录
+			While Not blRs.Eof
+				Dim I: For I = 0 To UBound(blContent)
+					blRs(""& blContent(I)(0) &"") = blContent(I)(1)
+				Next
+				If Err Then System.Error.Raise 21: Update = False: Err.Clear: Exit Function
+				blRs.Update
+			blRs.MoveNext: Wend: Update = True
 		Else Update = False End If
 		blRs.Close: Set blRs = Nothing
-	End Function	
+	End Function
 	
 	'/**
 	' * @功能说明: 删除记录
@@ -222,7 +234,7 @@ Class Cls_Data
 	Public Function Delete(ByVal blSql)
 		'DELETE FROM 表名称 WHERE 列名称 = 值
 		Dim blRs: Set blRs = QueryX(blSql, 1, 2, 1)
-		If Not blRs.Bof And Not blRs.Eof Then blRs.Delete: Delete = True _
+		If Not System.Text.IsEmptyAndNull(blRs) Then blRs.Delete: Delete = True _
 		Else Delete = False End If
 		blRs.Close: Set blRs = Nothing
 	End Function
@@ -406,8 +418,8 @@ Class Cls_Data_Page
 		PrDic("TYPE") = System.Data.GetDataBaseType()
 		
 		'// 初始化默认分页按钮输出样式
-		PrDic("__FIRST") = "&#171;": PrDic("__LAST") = "&#187;"
-		PrDic("__PREVIOUS") = "&#8249;": PrDic("__NEXT") = "&#8250;"
+		PrDic("FIRST") = "&#171;": PrDic("LAST") = "&#187;"
+		PrDic("PREV") = "&#8249;": PrDic("NEXT") = "&#8250;"
 		
 		'// 初始化分页样式
 		PrDic("STYLE") = "PAGER"
@@ -502,7 +514,9 @@ Class Cls_Data_Page
 	'// 各种分页样式 http://mis-algoritmos.com/2007/03/16/some-styles-for-your-pagination/
 	Public Function Out()
 		Dim blHtml: blHtml = Empty
-		Dim blUrl: blUrl = GetUrlParam("*", PrDic("LABEL"))
+		Dim blUrl
+		If Not System.Text.IsEmptyAndNull(PrDic("URL")) Then blUrl = PrDic("URL") _
+		Else blUrl = GetUrlParam("*", PrDic("LABEL"))
 		Dim blListPage, thePage, PrevBound, NextBound
 		Dim rowPage: rowPage = System.Text.ToNumeric(PrDic("ROWPAGE"))
 		PrevBound = PrDic("CURRENTPAGE") - Int(rowPage / 2)
@@ -517,9 +531,9 @@ Class Cls_Data_Page
 			If PrDic("CURRENTPAGE") > 1 Then
 				Dim blHomeHref: blHomeHref = Replace(blUrl, "*", 1)
 				Dim blPreviousHref: blPreviousHref = Replace(blUrl, "*", PrDic("CURRENTPAGE") - 1)
-				blHtml = blHtml & "<span><a href="""& blHomeHref &""">"& PrDic("__FIRST") &"</a></span><span><a href="""& blPreviousHref &""">"& PrDic("__PREVIOUS") &"</a></span>"
+				blHtml = blHtml & "<span><a href="""& blHomeHref &""">"& PrDic("FIRST") &"</a></span><span><a href="""& blPreviousHref &""">"& PrDic("PREV") &"</a></span>"
 			Else
-				blHtml = blHtml & "<span class=""disabled"">"& PrDic("__FIRST") &"</span><span class=""disabled"">"& PrDic("__PREVIOUS") &"</span>"
+				blHtml = blHtml & "<span class=""disabled"">"& PrDic("FIRST") &"</span><span class=""disabled"">"& PrDic("PREV") &"</span>"
 			End If
 			
 			'// 显示页码列表
@@ -537,9 +551,9 @@ Class Cls_Data_Page
 			If PrDic("CURRENTPAGE") < PrDic("PAGECOUNT") Then
 				Dim blNextHref: blNextHref = Replace(blUrl, "*", PrDic("CURRENTPAGE") + 1)
 				Dim blLastHref: blLastHref = Replace(blUrl, "*", PrDic("PAGECOUNT"))
-				blHtml = blHtml & "<span><a href="""& blNextHref &""">"& PrDic("__NEXT") &"</a></span><span><a href="""& blLastHref &""">"& PrDic("__LAST") &"</a></span>"
+				blHtml = blHtml & "<span><a href="""& blNextHref &""">"& PrDic("NEXT") &"</a></span><span><a href="""& blLastHref &""">"& PrDic("LAST") &"</a></span>"
 			Else
-				blHtml = blHtml & "<span class=""disabled"">"& PrDic("__NEXT") &"</span><span class=""disabled"">"& PrDic("__LAST") &"</span>"
+				blHtml = blHtml & "<span class=""disabled"">"& PrDic("NEXT") &"</span><span class=""disabled"">"& PrDic("LAST") &"</span>"
 			End If
 		End If
 		Out = "<div class="""& LCase(PrDic("STYLE")) &""">" & blHtml & "</div>"
@@ -551,7 +565,7 @@ Class Cls_Data_Page
 		For Each blQSItem In Request.QueryString()
 			'// 将除指定项除外进行重新拼接
 			If UCase(blQSItem) <> UCase(blPageParam) Then
-				blParam = blParam & blQSItem & "=" & Server.UrlEncode(Request.QueryString(blQSItem)) & "&"
+				blParam = blParam & blQSItem & "=" & Request.QueryString(blQSItem) & "&"
 			End If
 		Next
 		'// 重组之后，将指定向添加到末尾处

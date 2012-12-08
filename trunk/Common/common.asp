@@ -13,14 +13,10 @@
 Public C: Set C = Dicary():C.CompareMode = 1
 
 '// 释放数据源和基类
-Private Sub Terminate()
+Public Sub Terminate()
 	System.Data.DisConnect()
 	Set System = Nothing
 	Set C = Nothing
-End Sub
-
-Public Sub A(byVal blParam)
-	System.IO.Import LIB_PATH & "Action/"&blParam&"Action.class.asp"
 End Sub
 
 Public Function M(byVal blParam)
