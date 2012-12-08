@@ -15,7 +15,7 @@
 '// ---------------------------------------------------------------------------
 
 Class Cls_Template
-	Private dicLabel, tplXML
+	Private dicLabel, tplXML, strSuffix
 	Private strRootPath, strCharset, strTagHead, strRootXMLNode, strBlockDataAtr
 	Private strTemplatePath, strTemplateFilePath, strTemplateHtml, strResultHtml
 	Private strDateDiffTimeInterval, strTemplateCacheName, strTemplatePagePath
@@ -27,11 +27,12 @@ Class Cls_Template
 
 		'// 全局默认变量
 		strCharset      = System.Charset 	'编码设置
+		strSuffix       = ".html"			'设置模板文件的后缀名
 		strTagHead      = "$"				'定义模板标签头
 		strTemplatePath = "." 				'模板存放目录
 		strRootXMLNode  = "//template"  	'模板根节点名称
 		strBlockDataAtr = "name"        	'块赋值辅助的属性
-		intOpenAbsPath	= 1					'输出结果是否使用绝对路径 (0不用,1用)
+		intOpenAbsPath  = 1					'输出结果是否使用绝对路径 (0不用,1用)
 		
 		strDateDiffTimeInterval = "s"       		'表示相隔时间的类型：d日 h时 n分钟 s秒
 		intTemplateCacheType    = 0         		'缓存类型
@@ -43,6 +44,8 @@ Class Cls_Template
 		
 		'使用到的字典对象
 		Set dicLabel = Dicary()
+
+		System.Error.E(300) = "模板文件不存在！"
 	End Sub
 	
 	'// 类退出
@@ -50,6 +53,11 @@ Class Cls_Template
 		Set tplXML   = Nothing
 		Set dicLabel = Nothing
 	End Sub
+	
+	'// 新建类实例
+	Public Function [New]()
+		Set [New] = New Cls_Template
+	End Function
 	
 	'// 设置站点根目录路径
 	Public Property Let setRootPath(ByVal strVal)
@@ -95,9 +103,17 @@ Class Cls_Template
 	End Property
 
 	'// 同时对模板路径和文件进行设置
-	Public Property Let File(ByVal strPath, ByVal strFile)
-		strTemplatePath = strPath
-		setTemplateFile = strFile
+	Public Property Let File(ByVal strVal)
+		setTemplateFile = strVal & strSuffix
+	End Property
+	Public Property Get File()
+		File = strTemplatePagePath
+	End Property
+	Public Property Let Suffix(ByVal strVal)
+		strSuffix = strVal
+	End Property
+	Public Property Get Suffix()
+		Suffix = strSuffix
 	End Property
 	
 	'参数1: 缓存的名字,每个页面不能相同
@@ -395,6 +411,7 @@ Class Cls_Template
 	End Sub
 	
 	Private Sub Load()'读取模板文件
+		If Not System.IO.ExistsFile(strTemplateFilePath) Then System.Error.Raise 300: Exit Sub
 		strTemplateHtml = LoadInclude(System.IO.Read(strTemplateFilePath), strTemplateFilePath)
 		strTemplateHtml = System.Text.ReplaceX(System.Text.ReplaceX(strTemplateHtml, "\<\!\-\-\s*\{","{"),"\}\s*\-\-\>", "}")
 
