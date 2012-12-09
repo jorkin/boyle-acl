@@ -126,7 +126,7 @@ Class Boyle
 		Charset = PrCharset
 	End Property
 
-	'// 功能说明：页面执行数据库操作的资料
+	'// 页面执行数据库操作的次数
 	Public Property Let Queries(ByVal blNumber)
 		PrQueries = PrQueries + blNumber
 	End Property
@@ -134,12 +134,12 @@ Class Boyle
 		Queries = PrQueries
 	End Property
 	
-	'// 功能说明：返回页面执行所用的时间
+	'// 返回页面执行所用的时间
 	Public Property Get [End]()
 		[End] = FormatNumber(Timer() - vbTIME, 6, -1)
 	End Property
 	
-	'// 功能说明：获取地址栏信息
+	'// 获取地址栏信息
 	Public Function Uri(ByVal blParam)
 		Dim I, blOut, blItem, blTemp, blHasQueryString, blQueryString
 		Dim blScriptName: blScriptName = Request.ServerVariables("SCRIPT_NAME")
@@ -197,7 +197,7 @@ Class Boyle
 		End If		
 	End Function
 	
-	'// 功能说明：接收GET/POST方式所传输的数据
+	'// 接收GET方式所传输的数据
 	Public Function [Get](ByVal blParam)
 		Dim blContent: blParam = Text.Separate(blParam)
 		Select Case UCase(blParam(1))
@@ -213,8 +213,20 @@ Class Boyle
 		End Select
 		[Get] = Trim(blContent)
 	End Function
+
+	'// 接收POST方式所传输的数据
+	'// 取Form值，包括上传文件时的普通Form值
+	Public Function Post(ByVal strVal)
+		Dim blHttpContentType, blFormType
+		blHttpContentType = Request.ServerVariables("HTTP_CONTENT_TYPE")		
+		If Not Text.IsEmptyAndNull(blHttpContentType) Then blFormType = Split(blHttpContentType, ";")(0) _		
+		Else blFormType = "NOUPLOAD" End If
+		If LCase(blFormType) = "multipart/form-data" Then
+			If Upload.Open() > 0 Then Post = Upload.Form(strVal)
+		Else Post = Request.Form(strVal) End If
+	End Function
 	
-	'// 功能说明：以各种方式输出数据
+	'// 以各种方式输出数据
 	Public Sub W(ByVal blParam)
 		Response.Write(blParam)
 	End Sub
@@ -225,7 +237,7 @@ Class Boyle
 		W blParam: Set System = Nothing: Response.End()
 	End Sub
 
-	'// 功能说明: 获取客户端IP地址
+	'// 获取客户端IP地址
 	Public Function GetIP()
 		Dim addr, x, y
 		x = Request.ServerVariables("HTTP_X_FORWARDED_FOR")
@@ -235,7 +247,7 @@ Class Boyle
 		GetIP = addr
 	End Function
 
-	'// 功能说明: 判断请求是否来自外部
+	'// 判断请求是否来自外部
 	Public Function IsSelfPost()
 		Dim HTTP_REFERER, SERVER_NAME
 		HTTP_REFERER = CStr(Request.ServerVariables("HTTP_REFERER"))

@@ -75,12 +75,4 @@ End Function
 
 '// 加载运行时所需文件
 load_runtime_file()
-'// 设置调试模式是否开启
-System.Debug = APP_DEBUG
-'// 设置文件编码
-System.Charset = APP_CHARSET
-'// 设置输出的页面编码
-Response.Charset = System.Charset
-'// 当连接用户断开后自动释放资源
-If Not Response.IsClientConnected Then Terminate()
 %>
