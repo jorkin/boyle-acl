@@ -662,7 +662,7 @@ End Class
 
 <%
 '// +--------------------------------------------------------------------------
-'// | Boyle.ACL [风声无组件上传类 2.11(http://www.fonshen.com	)]
+'// | Boyle.ACL [风声无组件上传类 2.11(http://www.fonshen.com)]
 '// +--------------------------------------------------------------------------
 Class Cls_Upload
 
@@ -724,7 +724,7 @@ Class Cls_Upload
 
 	Private Sub Class_Initialize
 		m_Error	   = -1
-		m_Charset  = "utf-8"
+		m_Charset  = System.Charset
 		m_TotalSize= 0
 		m_MaxSize  = 153600
 		m_FileType = "jpg/gif/png"

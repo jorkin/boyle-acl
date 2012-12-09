@@ -14,6 +14,16 @@
 '// 导入项目配置文件
 System.IO.Import CONF_PATH & "config.asp"
 
+'// 设置调试模式是否开启
+System.Debug = C("APP_DEBUG")
+'// 设置文件编码
+System.Charset = C("DEFAULT_CHARSET")
+
+'// 设置输出的页面编码
+Response.Charset = System.Charset
+'// 当连接用户断开后自动释放资源
+If Not Response.IsClientConnected Then Terminate()
+
 '// 配置数据库连接
 System.Data.ConnString = ConfConnString
 

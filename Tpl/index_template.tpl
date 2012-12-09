@@ -6,6 +6,6 @@
 </head>
 
 <body>
-{T_NAME}
+{$hello}
 </body>
 </html>
