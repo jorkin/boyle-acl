@@ -198,27 +198,18 @@ Class Boyle
 	End Function
 	
 	'// 功能说明：接收GET/POST方式所传输的数据
-	Public Function [Get](ByVal blParam, ByVal blType)
-		Dim blContent
-		Select Case UCase(blType)
+	Public Function [Get](ByVal blParam)
+		Dim blContent: blParam = Text.Separate(blParam)
+		Select Case UCase(blParam(1))
 			Case "0", "INT":	'// 当目标标签为空时，值为0
-				If Text.IsEmptyAndNull(blParam) Then blContent = 0 _
-				Else blContent = Text.ToNumeric(Request.QueryString(blParam))
-			Case "1", "STR":	'// 当目标标签为空时，接收所有GET数据
-				If Text.IsEmptyAndNull(blParam) Then blContent = Request.QueryString() _
-				Else blContent = Request.QueryString(blParam)
-				'blContent = Text.ToString(blContent, "")
-			Case "2", "FORM":	'// 当目标标签为空时，接收所有表单数据
-								'// 如果表单中存在文件域，不进行相关操作
-				Dim blHttpContentType, blFormType
-				blHttpContentType = Request.ServerVariables("HTTP_CONTENT_TYPE")
-				If Not Text.IsEmptyAndNull(blHttpContentType) Then blFormType = Split(Request.ServerVariables("HTTP_CONTENT_TYPE"), ";")(0) _
-				Else blFormType = "NOUPLOAD" End If
-				If LCase(blFormType) <> "multipart/form-data" Then
-					If Text.IsEmptyAndNull(blParam) Then blContent = Request.Form() _
-					Else blContent = Request.Form(blParam)
-				End If
-			Case Else blContent = blParam
+				If Text.IsEmptyAndNull(blParam(0)) Then blContent = 0 _
+				Else blContent = Text.ToNumeric(Request.QueryString(blParam(0)))
+			Case "", "1", "ALL":'// 当目标标签为空时，接收所有GET数据
+				If Text.IsEmptyAndNull(blParam(0)) Then blContent = Request.QueryString() _
+				Else blContent = Request.QueryString(blParam(0))
+			Case "3", "PAGE":
+				blContent = Text.ToNumeric(Request.QueryString(System.Data.Page.Parameters("LABEL")))
+			Case Else blContent = blParam(0)
 		End Select
 		[Get] = Trim(blContent)
 	End Function
@@ -252,31 +243,6 @@ Class Boyle
 		IsSelfPost = False
 		IF Mid(HTTP_REFERER, 8, Len(SERVER_NAME)) = SERVER_NAME Then IsSelfPost = True
 	End Function
-	
-	'// 初始化系统
-	Public Sub Run()
-		Dim C: Set C = Array.NewHash(UCase(APP_PARAM))
-		
-		'// 配置数据库信息，系统默认使用ACCESS数据库
-		If Not Text.IsEmptyAndNull(C("DB.SOURCE")) Then
-			Dim TempStr
-			Select Case UCase(C("DB.TYPE"))
-				Case "0", "MSSQL":
-					TempStr = "Provider=sqloledb;Data Source=" & C("DB.SERVER") & ";Initial Catalog="& C("DB.SOURCE") &";User Id="& C("DB.USER") &";Password="& C("DB.PASS") &";"
-				Case "1", "ACCESS":
-					TempStr = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" & IO.FormatFilePath(C("DB.SOURCE")) & ";Jet OLEDB:Database Password="&C("DB.PASS")&";"
-				Case "2", "MYSQL":
-					TempStr = "Driver={mySQL};Server="& C("DB.SERVER") &";Port="& C("DB.PORT") &";Option=131072;Stmt=;Database="& C("DB.SOURCE") &";Uid="& C("DB.USER") &";Pwd="& C("DB.PASS") &";"
-				Case "3", "ORACLE":
-					TempStr = "Provider=msdaora;Data Source="& C("DB.SOURCE") &";User Id="& C("DB.USER") &";Password="& C("DB.PASS") &";"
-			End Select
-			Data.ConnString = TempStr
-		End If
-		
-		'// 配置模板信息
-		If Not Text.IsEmptyAndNull(C("TPL.PATH")) Then Template.Root = C("TPL.PATH")
-		Set C = Nothing
-	End Sub
 	
 End Class
 

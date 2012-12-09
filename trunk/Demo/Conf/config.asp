@@ -1,3 +1,5 @@
 <%
-APP_PARAM = "DB.TYPE:ACCESS DB.SOURCE:./demo/db/database.mdb DB.PASS:NULL TPL.PATH:"&APP_PATH&"tpl/"
+C("DB_NAME")  = "./demo/db/database.mdb"
+C("DB_PREFIX") = "BE_"
+C("URL_PATHINFO_DEPR") = "/"
 %>

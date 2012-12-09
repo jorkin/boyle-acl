@@ -264,7 +264,7 @@ Class Cls_Data
 			If blTopNumber > 0 Then blstrSQL = blstrSQL & "Top " & blTopNumber & " "
 			blstrSQL = blstrSQL & .IIF(blFields <> "" And blFields <> "*", blFields, "*") & " From " & blTable
 			'// 多条件查询，暂时只是将多个条件用AND进行连接
-			blstrSQL = .IIF(Not .IsEmptyAndNull(blCondition), (blstrSQL & " Where (" & blCondition) & ")", blstrSQL)
+			blstrSQL = .IIF(Not .IsEmptyAndNull(blCondition), (blstrSQL & " Where (" & blCondition & ")"), blstrSQL)
 			ToSQL = .IIF(Not .IsEmptyAndNull(blOrderField), (blstrSQL & " Order By " & blOrderField), blstrSQL)
 		End With
 	End Function
@@ -360,7 +360,7 @@ Class Cls_Data
 	'// notjs(可选) String (字符串) 
 	'// 此参数为固定字符串"notjs",如不省略此参数，则输出的Json字符串中不会将中文进行编码 
 	Public Function toJSON(ByVal blRs, ByVal blParam)
-		'On Error Resume Next
+		On Error Resume Next
 		Dim blField, blTotal		
 		Dim blNotJS: blNotJS = False
 		Dim blName: blName = System.Text.Separate(blParam)
@@ -424,7 +424,7 @@ Class Cls_Data_Page
 		'// 初始化分页样式
 		PrDic("STYLE") = "PAGER"
 		'// 初始化接收当前页的链接标签
-		PrDic("LABEL") = "PAGE"
+		PrDic("LABEL") = "P"
 		
 		'// 初始化分页所必须的参数
 		PrDic("ROWPAGE") = 10: PrDic("PAGESIZE") = 10: PrDic("PAGECOUNT") = 0

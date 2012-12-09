@@ -3,7 +3,6 @@
 Class IndexAction
 
 	Private Sub Class_Initialize
-		'System.Template.Root =  System.Template.Root&"/Index/"
 	End Sub
 	
 	'// 释放资源
@@ -13,22 +12,24 @@ Class IndexAction
 
 	'// 此方法为系统默认，请不要删除
 	Public Sub Index(ByVal blParam)
-		With System.Template
-			.d("title") = blParam
-			.Display()
-		End With
+		System.WB "<a href=""?m=index&a=parts"">普通访问模式</a>&nbsp;<a href=""?"&C("VAR_PATHINFO")&"=index"&C("URL_PATHINFO_DEPR")&"parts"">单参数访问模式</a>"
 	End Sub
 
-	Public Sub Parts(ByVal blParam)
-		With System.Template		
+	Public Sub Parts(ByVal blUrlParam)
+		With System.Template
 			.d("title") = "Boyle.ACL 示例"
 
-			'// 获取数据
-			blParam = System.Array.NewArray(blParam).Data
-			'// 获取值，这里需要改进
-			Dim blPage: blPage = blParam(3)'System.Get("PAGE", 0)
+			'// 获取地址栏数据并转换为数组
+			blUrlParam = System.Array.NewArray(blUrlParam).Data
+			'// 获取值，根据URL访问模式，自动获取值
+			Dim blPage
+			If C("URL_MODEL") = 0 Then blPage = System.Get(":PAGE")
+			If C("URL_MODEL") = 1 Then blPage = blUrlParam(3)
+			If C("URL_MODEL") = 2 Then blPage = ""
+
 			Dim Parts: Set Parts = M("PARTS")
-			Parts.Parameters("") = Array("CURRENTPAGE:"&blPage&"", "FIELD:ID,CP_NAME,CP_LOCALITY,CP_CAR", "URL:?s="&blParam(0)&"/"&blParam(1)&"/"&blParam(2)&"/*")
+			Parts.Parameters("") = Array("CURRENTPAGE:"&blPage&"", "FIELD:ID,CP_NAME,CP_LOCALITY,CP_CAR")
+			Parts.Parameters("URL") = U(blUrlParam)
 			Dim PagerResult: PagerResult = Parts.Pager()
 			.d("parts") = Array(PagerResult(0), "id,name,locality,car")
 			.d("pager") = PagerResult(1)
@@ -38,10 +39,5 @@ Class IndexAction
 			.Display()
 		End With
 	End Sub
-
-	'// 新建类实例
-	Public Function [New]()
-		Set [New] = New IndexAction
-	End Function
 End Class
 %>

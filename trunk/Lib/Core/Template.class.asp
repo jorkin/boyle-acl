@@ -21,6 +21,7 @@ Class Cls_Template
 	Private strDateDiffTimeInterval, strTemplateCacheName, strTemplatePagePath
 	Private strTemplateCachePath, intTemplateCacheType, intTemplateCacheTime
 	Private intOpenAbsPath, strAppCacheName, strFileCachePath
+	Private intLayout, strLayoutName, strLayoutItem, strLayoutFile
 
 	'// 类初始化
 	Private Sub Class_Initialize()
@@ -39,6 +40,11 @@ Class Cls_Template
 		intTemplateCacheTime    = 10        		'缓存时间
 		strTemplateCachePath    = "runtime/cache" 	'缓存目录
 		
+		intLayout     = 0 										'是否开启全局模板布局模式(0不开启,1开启)
+		strLayoutName = "layout"								'全局模板布局的名称
+		strLayoutItem = "{__CONTENT__}"							'全局模板布局的替换字符串
+		strLayoutFile = TMPL_PATH & strLayoutName & strSuffix 	'全局模板布局的文件路径
+
 		'Xml对象
 		Set tplXML = xmlDom(Right(strRootXMLNode, Len(strRootXMLNode)-2))
 		
@@ -109,11 +115,36 @@ Class Cls_Template
 	Public Property Get File()
 		File = strTemplatePagePath
 	End Property
+	'// 定义模板文件的后缀名
 	Public Property Let Suffix(ByVal strVal)
-		strSuffix = strVal
+		If Left(strVal, 1) <> "." Then strSuffix = "."&strVal _
+		Else strSuffix = strVal
 	End Property
 	Public Property Get Suffix()
 		Suffix = strSuffix
+	End Property
+	'// 定义是否开启全局模板布局
+	Public Property Let Layout(ByVal strVal)
+		intLayout = System.Text.ToBoolean(strVal)
+	End Property
+	Public Property Get Layout()
+		Layout = intLayout
+	End Property
+	'// 定义是否全局模板布局的模板名称
+	Public Property Let LayoutName(ByVal strVal)
+		strLayoutName = strVal
+	End Property
+	Public Property Get LayoutName()
+		LayoutName = strLayoutName
+	End Property
+	'// 定义是否全局模板布局的替换字符串
+	Public Property Let LayoutItem(ByVal strVal)
+		strLayoutItem = strVal
+		'// 设置全局模板布局的文件路径，这里用到了一个全局变量，即模板根目录路径
+		strLayoutFile = TMPL_PATH & strLayoutItem & strSuffix
+	End Property
+	Public Property Get LayoutItem()
+		LayoutItem = strLayoutItem
 	End Property
 	
 	'参数1: 缓存的名字,每个页面不能相同
@@ -412,15 +443,20 @@ Class Cls_Template
 	
 	Private Sub Load()'读取模板文件
 		If Not System.IO.ExistsFile(strTemplateFilePath) Then System.Error.Raise 300: Exit Sub
-		strTemplateHtml = LoadInclude(System.IO.Read(strTemplateFilePath), strTemplateFilePath)
+
+		'// 判断是否开启全局布局模式，如果开启则读取文件
+		Dim blLayoutHtml: blLayoutHtml = strLayoutItem
+		If intLayout Then blLayoutHtml = System.IO.Read(System.IO.FormatFilePath(strLayoutFile))
+		'// 将全局模板文件并入模板文件中，进行解析
+		strTemplateHtml = Replace(blLayoutHtml, strLayoutItem, System.IO.Read(strTemplateFilePath), 1, -1, 0)
+		strTemplateHtml = LoadInclude(strTemplateHtml, strTemplateFilePath)
 		strTemplateHtml = System.Text.ReplaceX(System.Text.ReplaceX(strTemplateHtml, "\<\!\-\-\s*\{","{"),"\}\s*\-\-\>", "}")
 
 		'// 使用绝对路径
 		strTemplateHtml = System.Text.IIF(CBool(intOpenAbsPath), AbsPath(strTemplateHtml), strTemplateHtml)
 
 		'编译模板，并且用XML存储模板标签节点
-		Dim XmlRoot
-		Set XmlRoot = tplXML.SelectSingleNode(strRootXMLNode)
+		Dim XmlRoot: Set XmlRoot = tplXML.SelectSingleNode(strRootXMLNode)
 		CompileTemplate Array(strTemplateHtml, strTagHead), XmlRoot
 		'保存模板到XML
 		XmlRoot.appendChild(tplXML.CreateCDATASection(strTemplateHtml))
@@ -429,8 +465,7 @@ Class Cls_Template
 	
 	'模板的include支持
 	Private Function LoadInclude(ByVal strHtml,ByVal strPath)
-		Dim incPath,html : html = strHtml
-		Dim Match, Matches
+		Dim Match, incPath, html: html = strHtml
 		For Each Match In System.Text.MatchX(strHtml, "{include\s*([\('""])?\s*(.*?)\1}")
 			incPath = System.IO.FormatFilePath(strRootPath & strTemplatePath & Match.SubMatches(1))
 			If strPath <> incPath Then html = Replace(html, Match.Value, LoadInclude(System.IO.Read(incPath), incPath), 1, -1, 0) _
