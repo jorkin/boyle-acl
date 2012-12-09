@@ -1,4 +1,5 @@
 <!--#include file="./common.asp"-->
+<!--#include file="../Conf/convention.asp"-->
 <%
 '// +--------------------------------------------------------------------------
 '// | Boyle.ACL [系统运行时文件]
@@ -10,13 +11,7 @@
 '// | Author: Boyle <boyle7[at]qq.com>
 '// +--------------------------------------------------------------------------
 
-'// 设置输出的页面编码
-Response.Charset = System.Charset
-'// 当连接用户断开后自动释放资源
-If Not Response.IsClientConnected Then Terminate()
-
 '// 定义系统常量
-Private APP_PARAM: APP_PARAM       = ""
 Private CORE_PATH: CORE_PATH       = BOYLE_PATH & "Lib/Core/"	'// 系统核心类库目录
 Private RUNTIME_PATH: RUNTIME_PATH = APP_PATH & "Runtime/"		'// 项目运行时目录
 Private LIB_PATH: LIB_PATH         = APP_PATH & "Lib/"			'// 项目类库目录
@@ -51,7 +46,7 @@ Function build_app_dir()
 			If Not .ExistsFolder(blDir(I)) Then build_app_dir = .CreateFolder(blDir(I))
 		Next
 		'// 写入初始配置文件
-		If Not .ExistsFile(CONF_PATH&"config.asp") Then .Save CONF_PATH&"config.asp", "<"&"%"&vbCrLf&"'//这个是项目自动生成的配置文件"&vbCrLf&"%"&">"
+		If Not .ExistsFile(CONF_PATH&"config.asp") Then .Save CONF_PATH&"config.asp", "<"&"%"&vbCrLf&"'//这个是项目自动生成的配置文件"&vbCrLf&"C(""配置项"") = ""配置值"""&vbCrLf&"%"&">"
 		'// 写入测试Action
 		If Not .ExistsFile(LIB_PATH&"Action/IndexAction.class.asp") Then build_first_action()
 		'// 写入测试模板文件
@@ -80,7 +75,12 @@ End Function
 
 '// 加载运行时所需文件
 load_runtime_file()
-
 '// 设置调试模式是否开启
 System.Debug = APP_DEBUG
+'// 设置文件编码
+System.Charset = APP_CHARSET
+'// 设置输出的页面编码
+Response.Charset = System.Charset
+'// 当连接用户断开后自动释放资源
+If Not Response.IsClientConnected Then Terminate()
 %>

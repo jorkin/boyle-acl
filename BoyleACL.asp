@@ -11,24 +11,22 @@
 '// | Author: Boyle <boyle7[at]qq.com>
 '// +--------------------------------------------------------------------------
 
-'// 导入配置文件
+'// 导入项目配置文件
 System.IO.Import CONF_PATH & "config.asp"
 
-'// 执行入口
-System.Run()
+'// 配置数据库连接
+System.Data.ConnString = ConfConnString
 
-'// 输出页面
+'// 格式化URL
+'// http://localhost/?m=module&a=action&id=1
 '// http://localhost/?s=modle/action/var/value
 '// http://localhost/app/index.php/Form/read/id/1
 
-'// 读取配置信息
-C("DB.PREFIX") = "BE_"
-
-Dim Action, blUri: blUri = System.Get("s", 1)
-
+'// 根据项目配置的URL访问模式，使用U函数自动获取URL参数
+Dim Action, blUri: blUri = U("")
 If Not System.Text.IsEmptyAndNull(blUri) Then
 	Dim blList: Set blList = System.Array.New
-	blList.Symbol = "/"
+	blList.Symbol = C("URL_PATHINFO_DEPR")
 	blList.Data = blUri
 	Dim blModel, blAction, blVar, blValue
 	Select Case blList.Size
@@ -47,10 +45,7 @@ If Not System.Text.IsEmptyAndNull(blUri) Then
 	blList(0) = blModel: blList(1) = blAction
 	blList(2) = blVar: blList(3) = blValue
 
-	'// 设置模板路径及文件
-	System.Template.Root = System.Template.Root&"/"&blModel&"/"
-	System.Template.File = blAction
-	Show(blModel) '// 载入文件
+	Call A(blModel, blAction) '// 载入文件
 	Set Action = Dicary()
 	'On Error Resume Next
 	Execute("Set Action("""&blModel&""") = New "&blModel&"Action")
@@ -58,17 +53,9 @@ If Not System.Text.IsEmptyAndNull(blUri) Then
 	'If Err Then Response.Redirect("./"): Err.Clear
 	Set Action = Nothing: Set blList = Nothing
 Else
-	'// 设置模板路径及文件
-	System.Template.Root = System.Template.Root&"/Index/"
-	System.Template.File = "Index"
-	Show("Index") '// 载入文件
+	Call A("Index", "Index") '// 载入文件
 	Set Action = New IndexAction
 	Action.Index("Boyle.ACL")
 	Set Action = Nothing
 End If
-
-Private Sub Show(ByVal blParam)
-	System.IO.Import(LIB_PATH & "Action/"&blParam&"Action.class.asp")
-End Sub
-
 %>

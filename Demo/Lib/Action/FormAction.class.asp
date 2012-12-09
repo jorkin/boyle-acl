@@ -81,28 +81,4 @@ Public Function callBack(ByVal blRs)
 	'最后用SET方法把数据返回就可以了
 	Set callBack = blRs
 End Function
-
-'// D函数用于实例化Model 格式 项目://分组/模块
-'Public Function D()
-'End Function
-
-'// M函数用于实例化一个没有模型文件的Model
-'Public Function M()
-'End Function
-
-'// 缓存管理
-Public Function S()
-End Function
-
-'// 快速文件数据读取和保存 针对简单类型数据 字符串、数组
-Public Function F()
-End Function
-
-'// URL组装 支持不同URL模式
-Public Function U()
-End Function
-
-'// 获取和设置语言定义(不区分大小写)
-Public Function L()
-End Function
 %>
