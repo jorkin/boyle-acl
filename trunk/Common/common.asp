@@ -66,25 +66,28 @@ Public Function U(ByVal blParam)
 	'// 当参数为空时，则获取URL值
 	If System.Text.IsEmptyAndNull(blParam) Then
 		If C("URL_MODEL") = 0 Then
-			Dim blUrlModel: blUrlModel = LCase(System.Get(C("VAR_MODULE")))
-			Dim blUrlAction: blUrlAction = LCase(System.Get(C("VAR_ACTION")))
+			Dim blUrlModel: blUrlModel = System.Get(C("VAR_MODULE"))
+			Dim blUrlAction: blUrlAction = System.Get(C("VAR_ACTION"))
 			If Not System.Text.IsEmptyAndNull(blUrlModel) Then
 				U = blUrlModel&C("URL_PATHINFO_DEPR")&blUrlAction
 			End If
 		ElseIf C("URL_MODEL") = 1 Then
-			U = LCase(System.Get(C("VAR_PATHINFO")))
+			U = System.Get(C("VAR_PATHINFO"))
 		ElseIf C("URL_MODEL") = 2 Then
 			U = ""
 		End If
-	Else 							'// 否则根据URL访问模式生成相对应的URL地址
-		If C("URL_MODEL") = 0 Then	'// 普通模式下，不需要设置URL地址，系统会自动获取
-			U = ""
+	Else '// 否则根据URL访问模式生成相对应的URL地址
+		Dim blArr: Set blArr = System.Array.NewArray(blParam)
+		If blArr.Size < 4 Then blArr.Insert 3, ""
+		blParam = blArr.Data: Set blArr = Nothing
+		If C("URL_MODEL") = 0 Then
+			U = "?"&C("VAR_MODULE")&"="&blParam(0)&"&"&C("VAR_ACTION")&"="&blParam(1)&"&"&blParam(2)&"="&blParam(3)
 		ElseIf C("URL_MODEL") = 1 Then
-			Dim blUrlParam: blUrlParam = System.Array.NewArray(blParam).Data
-			U = "?"&C("VAR_PATHINFO")&"="&blUrlParam(0)&C("URL_PATHINFO_DEPR")&blUrlParam(1)&C("URL_PATHINFO_DEPR")&blUrlParam(2)&C("URL_PATHINFO_DEPR")&"*"
+			U = "?"&C("VAR_PATHINFO")&"="&System.Array.NewArray(blParam).J(C("URL_PATHINFO_DEPR"))
 		ElseIf C("URL_MODEL") = 2 Then
 		End If
 	End If
+	U = LCase(U)
 End Function
 
 '// 缓存管理

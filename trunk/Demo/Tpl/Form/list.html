@@ -1,0 +1,13 @@
+﻿{include "head.html"}
+<div class="content">
+<ul>
+	<!-- {$customer} -->
+	<!-- {empty:customer} -->
+	<li>数据库中没有相关数据</li>
+	<!-- {/empty:customer} -->
+	<li><a href="/?s=form/edit/id/{customer.id}">编辑</a>&nbsp;<a href="/?s=form/delete/id/{customer.id}">删除</a> | {customer.sn},{customer.name}</li>
+	<!-- {/$customer} -->
+	{$pager}
+</ul>
+</div>
+{include "footer.html"}

@@ -138,7 +138,7 @@ Class Cls_Model
 			'// 将所有参数传递给分页类
 			.Page.Parameters("") = Me.Parameters("")
 			'// 对得到的结果进行行列对换
-			Dim blList: blList = System.Array.Swap(.Page.Run)
+			Dim blList: blList = System.Array.Swap(.Page.Run)'这里有BUG等待修复，数据为空时，或为1时'
 			'// 返回数组，顺序依次为 [0]记录集列表，[1]分页导航码，[2]分页参数
 			Pager = Array(blList, .Page.Out, .Page.Parameters(""))
 		End With

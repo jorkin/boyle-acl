@@ -11,3 +11,14 @@ input,button,textarea,select{vertical-align:middle;}
 input[type="checkbox"]{width:13px;height:15px;}
 em,i{font-style:normal;}
 .clearfix:after {clear:both;display:block;height:0;content:".";visibility:hidden;}
+
+/*分页默认样式*/
+.pager { margin-top:10px; margin-bottom:10px; padding:3px; text-align:left; color:#66C; }
+/*分页链接样式*/
+.pager a { font-size:12px; margin:2px; padding:2px 5px; color:#009; text-decoration:none; border:1px solid #aad; }
+/*分页链接鼠标移过的样式*/  
+.pager a:hover, .pager a:active { color:#000; border:1px solid #009; }
+/*当前页码的样式*/  
+.pager span.current { font-weight:bold; margin:0 2px; padding:2px 5px; color:#fff; background-color:#009; border:1px solid #009; }
+/*不可用分页链接的样式(比如第1页时的"上一页"链接)*/  
+.pager span.disabled { margin:0 2px; padding:2px 5px; color:#ddd; border:1px solid #eee; }
