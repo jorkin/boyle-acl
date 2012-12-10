@@ -514,9 +514,9 @@ Class Cls_Data_Page
 	'// 各种分页样式 http://mis-algoritmos.com/2007/03/16/some-styles-for-your-pagination/
 	Public Function Out()
 		Dim blHtml: blHtml = Empty
-		Dim blUrl
-		If Not System.Text.IsEmptyAndNull(PrDic("URL")) Then blUrl = PrDic("URL") _
-		Else blUrl = GetUrlParam("*", PrDic("LABEL"))
+		Dim blUrl: blUrl = GetUrlParam("*", PrDic("LABEL"))
+		'If Not System.Text.IsEmptyAndNull(PrDic("URL")) Then blUrl = PrDic("URL") _
+		'Else blUrl = GetUrlParam("*", PrDic("LABEL"))
 		Dim blListPage, thePage, PrevBound, NextBound
 		Dim rowPage: rowPage = System.Text.ToNumeric(PrDic("ROWPAGE"))
 		PrevBound = PrDic("CURRENTPAGE") - Int(rowPage / 2)
@@ -562,14 +562,26 @@ Class Cls_Data_Page
 	'// 智能链接组合
 	Private Function GetUrlParam(ByVal blPageNumber, ByVal blPageParam)
 		Dim blQSItem, blParam: blParam = ""
-		For Each blQSItem In Request.QueryString()
-			'// 将除指定项除外进行重新拼接
-			If UCase(blQSItem) <> UCase(blPageParam) Then
-				blParam = blParam & blQSItem & "=" & Request.QueryString(blQSItem) & "&"
-			End If
-		Next
-		'// 重组之后，将指定向添加到末尾处
-		blParam = "?" & blParam & blPageParam & "=" & blPageNumber
+		If C("URL_MODEL") = 0 Then
+			For Each blQSItem In Request.QueryString()
+				'// 将除指定项除外进行重新拼接
+				If UCase(blQSItem) <> UCase(blPageParam) Then
+					blParam = blParam & blQSItem & "=" & Request.QueryString(blQSItem) & "&"
+				End If
+			Next
+			'// 重组之后，将指定向添加到末尾处
+			blParam = "?" & blParam & blPageParam & "=" & blPageNumber
+		ElseIf C("URL_MODEL") = 1 Then
+			'// 这里用到两个全局变量，针对单参数模式
+			Dim blArr: Set blArr = System.Array.New
+			blArr.Symbol = C("URL_PATHINFO_DEPR")
+			blArr.Data = System.Get(C("VAR_PATHINFO"))
+			If blArr.Size > 3 Then blArr(2) = blPageParam: blArr(3) = blPageNumber
+			If blArr.Size < 3 Then blArr.Insert 2, Array(blPageParam, blPageNumber)
+			blParam = U(blArr.Data): Set blArr = Nothing
+		ElseIf C("URL_MODEL") = 2 Then
+
+		End If
 		GetUrlParam = LCase(blParam)
 	End Function
 End Class

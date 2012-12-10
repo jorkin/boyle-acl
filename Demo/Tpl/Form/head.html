@@ -1,0 +1,40 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>{$title}</title>
+<link href="../index/stylesheet/basic.css" rel="stylesheet" type="text/css" />
+<style type="text/css">
+.sql, .runtime, .content, .editor { margin: 0 auto; width: 90%; margin-top: 10px;}
+.sql { padding: 2px; background-color: #000; color: #FFF; font-family: Monaco,Consolas,'Lucida Console','Courier New',serif;}
+#main { margin: 0 auto; width: 90%; margin-top: 10px;}
+#main .title { font-size: 14px;}
+#main li { line-height: 1.5;}
+.line { margin-top: 20px; border-top: 10px solid #666;}
+</style>
+<script charset="utf-8" src="../../runtime/editor/kindeditor-min.js"></script>
+<script charset="utf-8" src="../../runtime/editor/lang/zh_CN.js"></script>
+<script>
+        var editor;
+        KindEditor.ready(function(K) {
+                editor = K.create('#blEditor', {
+                	width: '100%', height: '300px',
+					afterCreate : function() {
+						var self = this;
+						K.ctrl(document, 13, function() {
+							self.sync();
+							K('form[name=frmData]')[0].submit();
+						});
+						K.ctrl(self.edit.doc, 13, function() {
+							self.sync();
+							K('form[name=frmData]')[0].submit();
+						});
+					}
+                });
+        });
+</script>
+</head>
+
+<body>
+<div class="sql">{$sql}</div>
+<div class="content"><a href="/?s=form/add">增加</a>，<a href="/?s=form/list">列表</a></div>

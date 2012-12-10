@@ -59,13 +59,13 @@ If Not System.Text.IsEmptyAndNull(blUri) Then
 	Set Action = Dicary()
 	'On Error Resume Next
 	Execute("Set Action("""&blModel&""") = New "&blModel&"Action")
-	Execute("Action("""&blModel&""")."&blAction&"("""&blList.J(" ")&""")")
+	Execute("Action("""&blModel&""")."&blAction&"")
 	'If Err Then Response.Redirect("./"): Err.Clear
 	Set Action = Nothing: Set blList = Nothing
 Else
 	Call A("Index", "Index") '// 载入文件
 	Set Action = New IndexAction
-	Action.Index("Boyle.ACL")
+	Action.Index()
 	Set Action = Nothing
 End If
 %>

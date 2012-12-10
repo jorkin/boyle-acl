@@ -44,6 +44,8 @@ Class Boyle
 		PrCharset = "UTF-8"		
 		'// 系统默认关闭调试模式
 		PrDebug = False
+		'// 初始化数据库执行次数
+		PrQueries = 0
 	End Sub
 	
 	'// 释放命名对象
@@ -224,6 +226,23 @@ Class Boyle
 		If LCase(blFormType) = "multipart/form-data" Then
 			If Upload.Open() > 0 Then Post = Upload.Form(strVal)
 		Else Post = Request.Form(strVal) End If
+	End Function
+
+	'// 自动获取由GET/POST方式提交的数据，如果存在相同数据，GET方式优先
+	Public Function R(ByVal strVal)
+		If VarType(strVal) = 2 Then
+			Dim blParam: blParam = Me.Get(C("VAR_PATHINFO"))
+			Dim blArr: Set blArr = System.Array.New
+			blArr.Symbol = C("URL_PATHINFO_DEPR")
+			blArr.Data = blParam
+			If blArr.Size < 4 Then blArr.Insert 3, ""
+			R = blArr(Text.ToNumeric(strVal))
+			Set blArr = Nothing
+		ElseIf Not Text.IsEmptyAndNull(Me.Get(strVal)) Then
+			R = Me.Get(strVal)
+		ElseIf Not Text.IsEmptyAndNull(Me.Post(strVal)) Then
+			R = Me.Post(strVal)
+		Else R = "" End If
 	End Function
 	
 	'// 以各种方式输出数据

@@ -181,7 +181,6 @@ Class Cls_Template
 		For i = 0 To Ubound(ary)'多标签赋值
 			strTag = LCase(ary(i))
 			If strTag = strTagHead Then
-				'Dim tmpDic: Set tmpDic = Dicary()
 				Select Case TypeName(strVal)
 					Case "Recordset"'记录集
 						If strVal.State And Not strVal.Eof Then
@@ -203,12 +202,6 @@ Class Cls_Template
 							If TypeName(aryField)="Variant()" Then Set dicLabel = RedimField(dicLabel, aryField)'重命名字段
 						End If
 				End Select
-				'// [BOYLE.ACL]如果集合中已经存在标签，则进行追加。
-				'If Not System.Text.IsEmptyAndNull(dicLabel) Then
-				''	Dim tmpKey: For Each tmpKey In tmpDic: dicLabel(tmpKey) = tmpDic.Item(tmpKey): Next
-				'Else Set dicLabel = tmpDic End If
-				'Set dicLabel = tmpDic
-				'Set tmpDic = Nothing
 			Else'普通赋值,支持字典，普通数据(字段值、字符串、数字等)
 				Select Case TypeName(strVal)
 					Case "Dictionary", "Recordset"
