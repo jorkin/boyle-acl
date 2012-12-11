@@ -1,10 +1,10 @@
 ﻿<div class="editor">
+<!-- {$block} -->
 <form id="frmData" name="frmData" method="post" action="{$postUrl}">
-<label>
-<textarea name="blEditor" id="blEditor" cols="45" rows="5">{$content}</textarea>
-</label>
-  <label> <br />
-  <input type="submit" name="btnEnter" id="btnEnter" value="提交" />(提交快捷键: Ctrl + Enter)
-  </label>
+<input name="blId" type="text" id="blId" value="{block.id}" disabled="disabled" /><br />
+<input name="blName" type="text" id="blName" value="{block.ci_name}" /><br />
+<textarea name="blContent" id="blContent" cols="45" rows="5">{block.content}</textarea><br />
+<input type="submit" name="btnEnter" id="btnEnter" value="提交" />(提交快捷键: Ctrl + Enter)
 </form>
+<!-- {/$block} -->
 </div>

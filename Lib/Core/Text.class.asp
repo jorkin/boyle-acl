@@ -64,6 +64,8 @@ Class Cls_Text
 						If blParam.Bof And blParam.Eof Then blReturn = True
 					Case "Dictionary":
 						If blParam.Count = 0 Then blReturn = True
+					Case "Cls_Array":
+						If blParam.Size = 0 Then blReturn = True
 				End Select
 			Case 8192, 8194, 8204, 8209: '// 8192(Array),8204(Variant),8209(Byte)
 				If UBound(blParam) = -1 Then blReturn = True
@@ -300,6 +302,8 @@ Class Cls_Text
 			Select Case UCase(blExpression)
 				Case "IDCARD":	'// 验证是否为合法的身份证号码
 					Test = Me.IIF(isIDCard(blParam), True, False) : Exit Function
+				Case "REQUIRE": '// 验证是否存在内容
+					blPattern = ".+"
 				Case "ENGLISH":	'// 验证是否只包含英文字母
 					blPattern = "^[A-Za-z]+$"
 				Case "CHINESE":	'// 验证是否只包含中文字母

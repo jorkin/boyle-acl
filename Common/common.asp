@@ -42,12 +42,16 @@ Public Function ConfConnString()
 	End If
 End Function
 
-'// D函数用于实例化Model 格式 项目://分组/模块
-'Public Function D()
-'End Function
+'// D函数用于实例化模型类 格式 项目://分组/模块
+Public Function D(ByVal blModel, ByVal blParam)
+	Set D = System.Model.New(C("DB_PREFIX") & blParam)
+	System.IO.Import(LIB_PATH & "Model/"&blModel&"Model.class.asp")
+	D.Validate = C("Validate")
+	D.Auto = C("Auto")
+End Function
 
 '// M函数用于实例化模型类
-Public Function M(byVal blParam)
+Public Function M(ByVal blParam)
 	Set M = System.Model.New(C("DB_PREFIX") & blParam)
 End Function
 
@@ -101,4 +105,11 @@ End Function
 '// 获取和设置语言定义(不区分大小写)
 Public Function L()
 End Function
+
+'// 测试使用，循环输出字典内容
+Public Sub X(byval dicRs)
+	Dim tmpKey: For Each tmpKey In dicRS
+		System.WB tmpKey & "-" & dicRS.Item(tmpKey)
+	Next
+End Sub
 %>

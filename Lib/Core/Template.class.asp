@@ -61,8 +61,9 @@ Class Cls_Template
 	End Sub
 	
 	'// 新建类实例
-	Public Function [New]()
+	Public Function [New](ByVal strVal)
 		Set [New] = New Cls_Template
+		[New].setTemplateFile = strVal
 	End Function
 	
 	'// 设置站点根目录路径
@@ -487,7 +488,7 @@ Class Cls_Template
 
 			'如果是有结束标签,表示这个是一个闭合标签
 			If arrayTags(6) Then
-			Dim closeTags : closeTags = GetCloseBlock(Array(arrayTags(3),arrayTags(1)))
+				Dim closeTags : closeTags = GetCloseBlock(Array(arrayTags(3),arrayTags(1)))
 				arrayTags(4) = closeTags(0)    ' empty标签
 				arrayTags(5) = closeTags(1)    ' 仅循环体部分,不包含empty
 				arrayTags(8) = System.Text.ReplaceX( getBlockAttr(nodeDOM)("nodepath") & "/" & arrayTags(1),"^\/","")'节点路径
@@ -581,7 +582,7 @@ Class Cls_Template
 						Case "Variant()"'统一返回数组
 							For k = 0 To Ubound(returnData)
 								'获取字段值
-								Set dicRS = returnData(k) : dicRS("i") = k + 1
+								Set dicRS = returnData(k) : dicRS("i") = k + 1 ': X(dicRs)
 								'重命名字段
 								If TypeName(DicData("field"))="Variant()" Then Set dicRS = RedimField(dicRS, DicData("field"))
 								'数据重定义或渲染
@@ -632,60 +633,71 @@ Class Cls_Template
 				End If
 			Case "Variant()"'如果传递的是数组
 				If Ubound(DicData("data")) = 1 Then
-					DicData("field") = ExpSplit(DicData("data")(1),"\s*,\s*")'字段序列
+					DicData("field") = ExpSplit(DicData("data")(1),"\s*,\s*")'字段序列					
 					Select Case TypeName(DicData("data")(0))
-					Case "Recordset"'数据集
-						Set rs = DicData("data")(0)
-						If rs.Eof Then
+						Case "Null", "Empty" 'NULL值或空值。修复BUG，支持对数据为空时的处理
 							DicData("eof") = 1
-						Else
-							aryTemp = rs.getRows
-							ReDim aryData(Ubound(aryTemp, 2), Ubound(aryTemp))
-							ReDim returnData(Ubound(aryTemp, 2))
-							For recIndex = 0 To UBound(aryTemp, 2)'行
-								Set dic = Dicary()
-								For fldIndex = 0 To UBound(aryTemp)'字段
-									'aryData(recIndex,fldIndex) = aryTemp(fldIndex,recIndex)&""
-									dic(LCase(rs.Fields(fldIndex).Name)) = aryTemp(fldIndex, recIndex) & ""
-									dic(fldIndex) = aryTemp(fldIndex, recIndex) & ""
-								Next
-								Set returnData(recIndex) = dic'返回数组
-							Next
-						End If
-					Case "Variant()", "Cls_Array"	'数组,超级数组类
-						If TypeName(DicData("data")(0)) = "Cls_Array" Then
-							aryTemp  = DicData("data")(0).Data
-						Else
-							aryTemp  = DicData("data")(0)
-						End If
-						Dim arycount : arycount = GetArrayDimension(aryTemp)						
-						If arycount = 1 Then'如果是一维数组
-							If Ubound(aryTemp) = 0 Then
+						Case "Recordset"	'数据集
+							Set rs = DicData("data")(0)
+							If rs.Eof Then
 								DicData("eof") = 1
 							Else
-								ReDim returnData(0)
-								Set dic = Dicary()
-								For fldIndex = 0 To UBound(aryTemp) '字段
-									dic(fldIndex) = aryTemp(fldIndex) & ""
-								Next
-								Set returnData(0) = dic
-							End If
-						ElseIf arycount = 2 Then'二维数组
-							If Ubound(aryTemp, 1)=0 Then
-								DicData("eof") = 1
-							Else
-								ReDim returnData(Ubound(aryTemp,1))
-								For recIndex = 0 To Ubound(aryTemp,1)
+								aryTemp = rs.getRows
+								ReDim aryData(Ubound(aryTemp, 2), Ubound(aryTemp))
+								ReDim returnData(Ubound(aryTemp, 2))
+								For recIndex = 0 To UBound(aryTemp, 2)'行
 									Set dic = Dicary()
-									For fldIndex = 0 To Ubound(aryTemp,2)'二级循环数据赋值
-										dic(fldIndex) = aryTemp(recIndex, fldIndex) & ""'字段下标
+									For fldIndex = 0 To UBound(aryTemp)'字段
+										'aryData(recIndex,fldIndex) = aryTemp(fldIndex,recIndex)&""
+										dic(LCase(rs.Fields(fldIndex).Name)) = aryTemp(fldIndex, recIndex) & ""
+										dic(fldIndex) = aryTemp(fldIndex, recIndex) & ""
 									Next
 									Set returnData(recIndex) = dic'返回数组
 								Next
 							End If
-						Else returnData = Null End If
-					Case Else
-						returnData = aryTemp
+						Case "Variant()", "Cls_Array"	'数组,超级数组类
+							If TypeName(DicData("data")(0)) = "Cls_Array" Then aryTemp = DicData("data")(0).Data _
+							Else aryTemp = DicData("data")(0)
+							Dim arycount : arycount = GetArrayDimension(aryTemp)
+							If arycount = 1 Then'如果是一维数组（修复BUG，这里没有数据，下标应该小于0，为0时为单条数据）
+								If Ubound(aryTemp) < 0 Then
+									DicData("eof") = 1
+								Else
+									ReDim returnData(0)
+									Set dic = Dicary()
+									For fldIndex = 0 To UBound(aryTemp) '字段
+										dic(fldIndex) = aryTemp(fldIndex) & ""
+									Next
+									Set returnData(0) = dic
+									Set dic = Nothing
+								End If
+							ElseIf arycount = 2 Then'二维数组（修复BUG，这里没有数据，下标应该小于0，为0时为单条数据）
+								If Ubound(aryTemp, 1) < 0 Then
+									DicData("eof") = 1
+								Else
+									ReDim returnData(Ubound(aryTemp,1))
+									For recIndex = 0 To Ubound(aryTemp,1)
+										Set dic = Dicary()
+										For fldIndex = 0 To Ubound(aryTemp,2)'二级循环数据赋值
+											dic(fldIndex) = aryTemp(recIndex, fldIndex) & ""'字段下标
+										Next
+										Set returnData(recIndex) = dic'返回数组
+									Next
+									Set dic = Nothing
+								End If
+							Else returnData = Null End If
+						Case "Dictionary" 	'字典，对字典类型进行扩展
+							Set aryTemp = DicData("data")(0)
+							If aryTemp.Count = 0 Then
+								DicData("eof") = 1
+							Else
+								'//?这里如何实现 ？？？？？？
+								'ReDim returnData(0)
+								'Set returnData(0) = aryTemp
+								'X(dic)
+							End If
+						Case Else
+							returnData = aryTemp
 					End Select
 				End If
 			Case "Dictionary"'如果传递的是字典
