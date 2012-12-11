@@ -1166,7 +1166,7 @@ Class Cls_Array
 
 	'// 对目标二维数组的行列值进行对调A(I, J)换成A(J, I)
 	Public Function Swap(ByVal arrVal)
-		If System.Text.IsEmptyAndNull(arrVal) Then Exit Function
+		If System.Text.IsEmptyAndNull(arrVal) Then Swap = Empty: Exit Function
 		Dim arr1, I, J
 		ReDim arr1(UBound(arrVal, 2), UBound(arrVal))
 		For J = 0 To UBound(arr1, 2)

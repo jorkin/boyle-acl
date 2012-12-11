@@ -219,13 +219,16 @@ Class Boyle
 	'// 接收POST方式所传输的数据
 	'// 取Form值，包括上传文件时的普通Form值
 	Public Function Post(ByVal strVal)
-		Dim blHttpContentType, blFormType
-		blHttpContentType = Request.ServerVariables("HTTP_CONTENT_TYPE")		
-		If Not Text.IsEmptyAndNull(blHttpContentType) Then blFormType = Split(blHttpContentType, ";")(0) _		
-		Else blFormType = "NOUPLOAD" End If
-		If LCase(blFormType) = "multipart/form-data" Then
-			If Upload.Open() > 0 Then Post = Upload.Form(strVal)
-		Else Post = Request.Form(strVal) End If
+		If Not Text.IsEmptyAndNull(strVal) Then
+			Dim blHttpContentType, blFormType
+			blHttpContentType = Request.ServerVariables("HTTP_CONTENT_TYPE")		
+			If Not Text.IsEmptyAndNull(blHttpContentType) Then blFormType = Split(blHttpContentType, ";")(0) _		
+			Else blFormType = "NOUPLOAD" End If
+			If LCase(blFormType) = "multipart/form-data" Then
+				If Upload.Open() > 0 Then Post = Upload.Form(strVal)
+			Else Post = Request.Form(strVal) End If
+		'// 当参数为空时，获取所有表单值
+		Else Post = Request.Form() End If
 	End Function
 
 	'// 自动获取由GET/POST方式提交的数据，如果存在相同数据，GET方式优先

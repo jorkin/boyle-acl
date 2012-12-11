@@ -179,7 +179,7 @@ Class Cls_Data
 	Public Function Read(ByVal blSql)
 		'SELECT 列名称 FROM 表名称
 		Dim blRs: Set blRs = QueryX(blSql, 1, 1, 1)
-		If System.Text.IsEmptyAndNull(blRs) Then Read = Array(Empty) _
+		If System.Text.IsEmptyAndNull(blRs) Then Set Read = System.Array.New _
 		Else Set Read = blRs
 	End Function
 	
@@ -346,7 +346,8 @@ Class Cls_Data
 		Select Case System.Data.Connection.Provider
 			Case "MSDASQL.1", "SQLOLEDB.1", "SQLOLEDB" : GetDataBaseType = "MSSQL"
 			Case "MSDAORA.1", "OraOLEDB.Oracle" : GetDataBaseType = "ORACLE"
-			Case "Microsoft.Jet.OLEDB.4.0" : GetDataBaseType = "ACCESS"
+			Case "MICROSOFT.ACE.OLEDB.12.0", "Microsoft.Jet.OLEDB.4.0" : GetDataBaseType = "ACCESS"
+			Case "MYSQLPROV": GetDataBaseType = "MYSQL"
 			Case Else GetDataBaseType = ""
 		End Select
 	End Function
@@ -495,7 +496,7 @@ Class Cls_Data_Page
 				'// 设置当前页
 				PrDic("CURRENTPAGE") = CurrentPage
 				
-				If Not blRs.Bof And Not blRs.Eof Then
+				If Not System.Text.IsEmptyAndNull(blRs) Then
 					'// ACCESS BUG
 					If PrDic("CURRENTPAGE") > 1 And PrDic("CURRENTPAGE") = PrDic("PAGECOUNT") And (PrDic("RECORDCOUNT") Mod PrDic("PAGESIZE") = 1) Then
 						blRs.AbsolutePosition = (PrDic("CURRENTPAGE") - 1) * PrDic("PAGESIZE")
@@ -515,17 +516,17 @@ Class Cls_Data_Page
 	Public Function Out()
 		Dim blHtml: blHtml = Empty
 		Dim blUrl: blUrl = GetUrlParam("*", PrDic("LABEL"))
-		'If Not System.Text.IsEmptyAndNull(PrDic("URL")) Then blUrl = PrDic("URL") _
-		'Else blUrl = GetUrlParam("*", PrDic("LABEL"))
 		Dim blListPage, thePage, PrevBound, NextBound
 		Dim rowPage: rowPage = System.Text.ToNumeric(PrDic("ROWPAGE"))
 		PrevBound = PrDic("CURRENTPAGE") - Int(rowPage / 2)
 		NextBound = PrDic("CURRENTPAGE") + Int(rowPage / 2)
 		If PrevBound <= 0 Then PrevBound = 1: NextBound = rowPage
 		If NextBound > PrDic("PAGECOUNT") Then NextBound = PrDic("PAGECOUNT"): PrevBound = PrDic("PAGECOUNT") - rowPage
-		
-		If PrDic("PAGECOUNT") = 1 Then
-			blHtml = blHtml & "<span class=""current"">1</span>"
+
+		If PrDic("PAGECOUNT") < 1 Then
+			blHtml = ""
+		ElseIf PrDic("PAGECOUNT") = 1 Then
+			blHtml = "<span class=""current"">1</span>"
 		Else
 			'// 显示首页和下一页
 			If PrDic("CURRENTPAGE") > 1 Then
@@ -559,7 +560,7 @@ Class Cls_Data_Page
 		Out = "<div class="""& LCase(PrDic("STYLE")) &""">" & blHtml & "</div>"
 	End Function
 	
-	'// 智能链接组合
+	'// 根据系统的URL访问模式智能组合链接
 	Private Function GetUrlParam(ByVal blPageNumber, ByVal blPageParam)
 		Dim blQSItem, blParam: blParam = ""
 		If C("URL_MODEL") = 0 Then
