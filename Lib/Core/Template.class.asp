@@ -30,7 +30,7 @@ Class Cls_Template
 		strCharset      = System.Charset 	'编码设置
 		strSuffix       = ".html"			'设置模板文件的后缀名
 		strTagHead      = "$"				'定义模板标签头
-		strTemplatePath = "." 				'模板存放目录
+		strTemplatePath = "./" 				'模板存放目录
 		strRootXMLNode  = "//template"  	'模板根节点名称
 		strBlockDataAtr = "name"        	'块赋值辅助的属性
 		intOpenAbsPath  = 1					'输出结果是否使用绝对路径 (0不用,1用)
