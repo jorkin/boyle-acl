@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>{$title}</title>
-<link href="../index/stylesheet/basic.css" rel="stylesheet" type="text/css" />
+<link href="../public/basic.css" rel="stylesheet" type="text/css" />
 <style type="text/css">
 .sql, .runtime, .content, .editor { margin: 0 auto; width: 90%; margin-top: 10px;}
 .sql { padding: 2px; background-color: #000; color: #FFF; font-family: Monaco,Consolas,'Lucida Console','Courier New',serif;}
@@ -12,26 +12,26 @@
 #main li { line-height: 1.5;}
 .line { margin-top: 20px; border-top: 10px solid #666;}
 </style>
+<script charset="utf-8" src="../public/jquery-1.8.3.min.js"></script>
 <script charset="utf-8" src="../../runtime/editor/kindeditor-min.js"></script>
 <script charset="utf-8" src="../../runtime/editor/lang/zh_CN.js"></script>
 <script>
-        var editor;
-        KindEditor.ready(function(K) {
-                editor = K.create('#blContent', {
-                	width: '100%', height: '300px',
-					afterCreate : function() {
-						var self = this;
-						K.ctrl(document, 13, function() {
-							self.sync();
-							K('form[name=frmData]')[0].submit();
-						});
-						K.ctrl(self.edit.doc, 13, function() {
-							self.sync();
-							K('form[name=frmData]')[0].submit();
-						});
-					}
-                });
-        });
+	$(function() {
+		var editor = KindEditor.create('textarea[name="blcontent"]',{
+			width: '100%', height: '300px',
+			afterCreate : function() {
+				var self = this;
+				K.ctrl(document, 13, function() {
+					self.sync();
+					K('form[name=frmData]')[0].submit();
+				});
+				K.ctrl(self.edit.doc, 13, function() {
+					self.sync();
+					K('form[name=frmData]')[0].submit();
+				});
+			}, afterChange: function () { this.sync() }
+		});
+	});
 </script>
 </head>
 

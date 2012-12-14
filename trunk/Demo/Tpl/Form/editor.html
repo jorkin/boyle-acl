@@ -1,10 +1,11 @@
 ﻿<div class="editor">
 <!-- {$block} -->
 <form id="frmData" name="frmData" method="post" action="{$postUrl}">
-<input name="blId" type="text" id="blId" value="{block.id}" disabled="disabled" /><br />
-<input name="blName" type="text" id="blName" value="{block.ci_name}" /><br />
-<textarea name="blContent" id="blContent" cols="45" rows="5">{block.content}</textarea><br />
-<input type="submit" name="btnEnter" id="btnEnter" value="提交" />(提交快捷键: Ctrl + Enter)
+<input name="blid" type="text" id="blid" value="{block.id}" disabled="disabled" /><br />
+<input name="blname" type="text" id="blname" value="{block.ci_name}" /><br />
+<textarea name="blcontent" id="blcontent" cols="45" rows="5">{block.content}</textarea><br />
+<input type="button" name="btnsave" id="btnsave" value="保存" onclick="javascript:aa()" />
+<input type="submit" name="btnenter" id="btnenter" value="提交" />(提交快捷键: Ctrl + Enter)
 </form>
 <!-- {/$block} -->
 </div>

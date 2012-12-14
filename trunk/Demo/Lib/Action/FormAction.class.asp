@@ -32,6 +32,7 @@ Class FormAction
 			Dim Customer: Set Customer = D("Form", "Customer")
 			If Customer.Create(blData) Then
 				'Customer.Add(blData)
+				.d("result") = blContent
 			Else
 				.d("result") = Customer.GetError()
 			End If
