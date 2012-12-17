@@ -1,0 +1,94 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Taihom ASP Template (4.0)使用说明</title>
+<style type="text/css">
+<!--
+body {
+	font-family: Tahoma,'Microsoft Yahei','Simsun';
+	font-size: 12px;
+}
+div { display:block; }
+#main { margin:0 auto; width:90%;}
+.table_title, .t_table { font-size:14px;}
+.table_title td { padding:5px;}
+.t_table { border: 1px solid #E3EDF5; }
+.t_table td {
+	padding: 4px;
+	border: 1px solid #E3EDF5;
+	overflow: hidden;
+}
+
+ol {
+	display: block;
+	list-style-type: decimal;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	-webkit-padding-start: 40px;
+}
+li {
+	display: list-item;
+	text-align: -webkit-match-parent;
+	margin-left: 2em;
+}
+.blockcode {
+	color:#666;
+	padding: 10px 0px 5px 10px;
+	border:1px solid #CCC;
+	background: #F7F7F7 url(codebg.gif) repeat-y 0 0;
+	overflow:hidden;
+}
+.blockcode ol {
+	margin: 0 0 0 10px !important;
+	padding: 0 !important;
+}
+.blockcode ol li {
+	padding-left: 10px;
+	list-style-type: decimal-leading-zero;
+	font-family: Monaco,Consolas,'Lucida Console','Courier New',serif;
+	font-size: 12px;
+	line-height: 1.8em;
+}
+.blockcode em {
+	font-style:normal;
+	margin-left: 43px;
+	color: #369 !important;
+	font-size: 12px;
+	cursor: pointer;
+}
+-->
+</style>
+</head>
+
+<body>
+<div id="main">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" class="table_title">
+  <tr>
+    <td><strong>普通标签示例</strong></td>
+  </tr>
+</table>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td>下面是几个普通标签应用的例子：</td>
+  </tr>
+  <tr>
+    <td> 普通标签赋值： </td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_Nz9"><ol><li>tpl.d(标签名)&nbsp;&nbsp;= 标签值 值可以是 字符串或者数字类型的值</li></ol></div><em onclick="copycode($('code_Nz9'));">复制代码</em></div>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td> 如果我的普通标签很多，有什么更加快捷的标签赋值方法？ </td>
+  </tr>
+</table>
+<div class="blockcode" data-find="_21"><div id="code_x6e" data-find="_20"><ol><li>首先介绍4.0的新特性：</li><li>tpl.d(标签名)&nbsp;&nbsp;= Array(RS数据集合或者值数组,"标签名0,标签名1,标签名2...")</li><li></li><li>1、数据集合直接赋值</li><li>这将会以字段名为标签名，字段值为标签的值来给标签赋值</li><li>tpl.d(标签头)&nbsp;&nbsp;= RS数据集合</li><li>如果你想用其他的标签名来输出的话那怎么办呢？</li><li>例如，您提供的数据集的查询是 Select art_title,art_content,art_hit,.....</li><li>那么使用 tpl.d(标签头)&nbsp;&nbsp;= RS数据集合 给标签赋值后，在模板中您必须对应使用{$art_title}、{$art_content}、{$art_hit}的方式来作为对应的值输出</li><li>这样未免显得过于繁琐，解决的方法有两个：</li><li>1) [推荐]提供的数据集的查询的时候用 as 新字段名 Select art_title as title,art_content as content,art_hit as hit,.....给模板标签赋值</li><li>2) [新特性]在模板赋值的时候用上面提到的方法来重定义数据标签：</li><li>例子(假设标签头是$)：</li><li>Set rs = conn.execute("Select art_title as title,art_content as content,art_hit as hit,..... ")</li>
+<li>tpl.d("$&quot;)&nbsp;&nbsp;= Array(rs,"title,content,hits")</li>
+<li></li><li>以上操作相当于：</li><li>tpl.d("title")&nbsp; &nbsp; = rs(0) 或 rs("art_title")</li><li>tpl.d("content")&nbsp;&nbsp;= rs(1) 或 rs("art_content")</li><li>tpl.d("hits")&nbsp; &nbsp;&nbsp;&nbsp;= rs(2) 或 rs("art_hit")</li><li></li><li>通过RS数据集合方式给标签赋值的可用新的标签名或者下标来输出对应的值，旧的值同样保留哦！</li><li>例如：{$title} {$0} 都是可以的，当然用数组方式改变值，那么原来的字段名也是可以用的 {$art_title} 同样可用。</li><li></li><li>2、数组赋值(普通标签仅支持一维数组)</li><li>标签赋值还支持数组赋值，数组赋值需要遵循上面的赋值新特性，不同的是RS数据集合改成你要赋值的数组：</li><li>tpl.d(标签名)&nbsp;&nbsp;= Array(赋值数组,"标签名0,标签名1,标签名2...")</li><li>例子(假设标签头是$)：</li><li>Dim ary(3)</li><li>&nbsp; &nbsp; ary(0) = "标题"</li><li>&nbsp; &nbsp; ary(1) = "内容"</li><li>&nbsp; &nbsp; ary(2) = 10</li><li>&nbsp; &nbsp; </li>
+<li>tpl.d("$&quot;)&nbsp;&nbsp;= Array(ary,"title,content,hits")</li><li></li><li>以上操作相当于：</li><li>tpl.d("title")&nbsp; &nbsp; = "标题"</li><li>tpl.d("content")&nbsp;&nbsp;= "内容"</li><li>tpl.d("hits")&nbsp; &nbsp;&nbsp;&nbsp;= 10</li><li></li><li>通过数组赋值方式给标签赋值的可用新的标签名或者下标来输出对应的值！</li><li>例如：{$title} {$0} 都是可以的</li><li></li><li>3、字典赋值</li><li>标签赋值还可以使用字典对象进行赋值</li><li>例子：</li><li>Dim dic</li><li>Set dic = Server.CreateObject("Scripting.Dictionary")</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;dic("title")&nbsp; &nbsp; = "标题"</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;dic("content")&nbsp;&nbsp;= "内容"</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;dic("hits")&nbsp; &nbsp;&nbsp;&nbsp;= 10</li><li></li>
+<li>tpl.d("$&quot;)&nbsp;&nbsp;= dic</li><li></li><li>以上操作相当于：</li><li>tpl.d("title")&nbsp; &nbsp; = "标题"</li><li>tpl.d("content")&nbsp;&nbsp;= "内容"</li><li>tpl.d("hits")&nbsp; &nbsp;&nbsp;&nbsp;= 10</li><li></li><li>结合上述新特性，您可以更加方便的给模板标签赋值，这个新特性，在块标签中同样适用！不同的是，块标签还支持二维数组的输出。</li></ol></div><em onclick="copycode($('code_x6e'));">复制代码</em></div>
+</div>
+</body>
+</html>

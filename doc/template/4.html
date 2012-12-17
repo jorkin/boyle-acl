@@ -1,0 +1,90 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Taihom ASP Template (4.0)使用说明</title>
+<style type="text/css">
+<!--
+body {
+	font-family: Tahoma,'Microsoft Yahei','Simsun';
+	font-size: 12px;
+}
+div { display:block; }
+#main { margin:0 auto; width:90%;}
+.table_title, .t_table { font-size:14px;}
+.table_title td { padding:5px;}
+.t_table { border: 1px solid #E3EDF5; }
+.t_table td {
+	padding: 4px;
+	border: 1px solid #E3EDF5;
+	overflow: hidden;
+}
+
+ol {
+	display: block;
+	list-style-type: decimal;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	-webkit-padding-start: 40px;
+}
+li {
+	display: list-item;
+	text-align: -webkit-match-parent;
+	margin-left: 2em;
+}
+.blockcode {
+	color:#666;
+	padding: 10px 0px 5px 10px;
+	border:1px solid #CCC;
+	background: #F7F7F7 url(codebg.gif) repeat-y 0 0;
+	overflow:hidden;
+}
+.blockcode ol {
+	margin: 0 0 0 10px !important;
+	padding: 0 !important;
+}
+.blockcode ol li {
+	padding-left: 10px;
+	list-style-type: decimal-leading-zero;
+	font-family: Monaco,Consolas,'Lucida Console','Courier New',serif;
+	font-size: 12px;
+	line-height: 1.8em;
+}
+.blockcode em {
+	font-style:normal;
+	margin-left: 43px;
+	color: #369 !important;
+	font-size: 12px;
+	cursor: pointer;
+}
+.t_table1 {font-size:14px;}
+-->
+</style>
+</head>
+
+<body>
+<div id="main">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" class="table_title">
+  <tr>
+    <td><strong>功能标签</strong></td>
+  </tr>
+  <tr>
+    <td>   功能标签实现的是模板插入、判断等        <br /></td>
+  </tr>
+  <tr>
+    <td> 模板插入功能 </td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_80P"><ol><li>{include "模板路径文件"}</li></ol></div><em onclick="copycode($('code_80P'));">复制代码</em></div>
+<table width="100%" border="0" cellpadding="0" cellspacing="0" class="table_title">
+  
+  <tr>
+    <td> 判断</td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_DI6"><ol><li>{if "(cms:title)"=""}没有标题{ef "(cms:id)"="1"}id=1{/if}</li></ol></div><em onclick="copycode($('code_DI6'));">复制代码</em></div>
+</div>
+</body>
+</html>

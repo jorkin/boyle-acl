@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Taihom ASP Template (4.0)使用说明</title>
+<style type="text/css">
+<!--
+body {
+	font-family: Tahoma,'Microsoft Yahei','Simsun';
+	font-size: 12px;
+}
+div { display:block; }
+#main { margin:0 auto; width:90%;}
+.table_title, .t_table { font-size:14px;}
+.table_title td { padding:5px;}
+.t_table { border: 1px solid #E3EDF5; }
+.t_table td {
+	padding: 4px;
+	border: 1px solid #E3EDF5;
+	overflow: hidden;
+}
+
+ol {
+	display: block;
+	list-style-type: decimal;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	-webkit-padding-start: 40px;
+}
+li {
+	display: list-item;
+	text-align: -webkit-match-parent;
+	margin-left: 2em;
+}
+.blockcode {
+	color:#666;
+	padding: 10px 0px 5px 10px;
+	border:1px solid #CCC;
+	background: #F7F7F7 url(codebg.gif) repeat-y 0 0;
+	overflow:hidden;
+}
+.blockcode ol {
+	margin: 0 0 0 10px !important;
+	padding: 0 !important;
+}
+.blockcode ol li {
+	padding-left: 10px;
+	list-style-type: decimal-leading-zero;
+	font-family: Monaco,Consolas,'Lucida Console','Courier New',serif;
+	font-size: 12px;
+	line-height: 1.8em;
+}
+.blockcode em {
+	font-style:normal;
+	margin-left: 43px;
+	color: #369 !important;
+	font-size: 12px;
+	cursor: pointer;
+}
+-->
+</style>
+</head>
+
+<body>
+<div id="main">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" class="table_title">
+  <tr>
+    <td>模板类的使用规范: </td>
+  </tr>
+  <tr>
+    <td><a href="1.html">普通标签</a> <a href="2.html">块标签</a> <a href="3.html">标签属性</a> <a href="4.html">功能标签</a></td>
+  </tr>
+</table>
+<table width="100%" cellspacing="0" class="t_table">
+  <tr>
+    <td>&nbsp;</td>
+    <td>模板类的标签规则</td>
+    <td>说明</td>
+  </tr>
+  <tr>
+    <td>标签边界</td>
+    <td>{ }、( ) 模板类的标签一共有三种标签：普通标签、块标签、功能标签</td>
+    <td>{ }是模板标签边界，( )是在大括号引用标签时候使用的标签边界 </td>
+  </tr>
+  <tr>
+    <td>普通标签</td>
+    <td>例子：{tpl:title len=&quot;10&quot;}<br />
+      { }是标签边界<br />
+tpl:标签头<br />
+title标签名<br />
+len=&quot;10&quot;标签属性 </td>
+    <td>标签头、标签名、标签属性都是可以根据自己的需要自己定义，这个定义下面的块标签也一致</td>
+  </tr>
+  <tr>
+    <td>块标签</td>
+    <td>例子(标签名、属性可自定义)：<br />
+{tpl:block} .... {/tpl:block}<br />
+{tpl:asdf name=&quot;hellow&quot;} .... {/tpl:asdf}<br />
+{tpl:loop id=&quot;3&quot;} ....   {/tpl:loop}<br />
+{tpl:class id=&quot;3&quot;} .... {/tpl:class}<br />
+{tpl:class id=&quot;3&quot;} ..{class.name}.. {/tpl:class}</td>
+    <td>有开始+结束标签把模板代码包含起来，并且可以组成标签对的模板标签就是块标签，块标签是可以进行嵌套的。<br />
+      <strong>块标签主要是用作数据块显示输出和数据循环输出</strong> <br />
+      为了在设计中隐藏掉块标签代码，强烈建议在块标签前后加上HTML的注释符号，例如：<br />
+    &lt;!--{tpl:class id=&quot;3&quot;}--&gt; ..{class.name}.. &lt;!--{/tpl:class}--&gt; </td>
+  </tr>
+  <tr>
+    <td>功能标签</td>
+    <td>include</td>
+    <td>功能标签目前有 {include }、{if }标签</td>
+  </tr>
+  <tr>
+    <td>插入文件标签</td>
+    <td>{include &quot;模板文件&quot;}</td>
+    <td>该模板类支持包含同模板目录下的文件，例如 <strong>{include &quot;head.html&quot;}</strong></td>
+  </tr>
+  <tr>
+    <td>逻辑标签</td>
+    <td>{if &quot;(tpl:name)&quot;=&quot;a&quot;}...{ef &quot;(tpl:name)&quot;=&quot;b&quot;} ...{else} ..{/if}</td>
+    <td>逻辑标签~ 故名肆意用来做判断用的，用法跟ASP的IF是一样的，也可以支持嵌套。不过建议在模板中少用逻辑标签，尽量把最终的结果给到模板，以提升模板运作的效率</td>
+  </tr>
+</table>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td> 下面是一个简单示例： </td>
+  </tr>
+</table>
+<div class="blockcode">
+	<div id="code_33o">
+   	  <ol>
+       	<li>Dim tpl</li>
+            <li>Set tpl = New Taihom_tpl'实例化模板引擎</li>
+            <li>&nbsp; &nbsp; '=====================================下面是模板公共设置</li>
+            <li>&nbsp; &nbsp; '可选参数,如果用到循环块内容执行sql 的时候再使用</li>
+            <li>&nbsp; &nbsp; tpl.conn = dbo.conn'设置数据库连接</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '可选参数,默认是utf-8</li>
+            <li>&nbsp; &nbsp; 'tpl.setCharset&nbsp; &nbsp;&nbsp; &nbsp;= "utf-8" '模板文件编码，其他编码可能需要自行转换函数文件编码</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '可选设置,默认是相对于模板类调用的目录</li>
+            <li>&nbsp; &nbsp; 'tpl.setRootPath&nbsp; &nbsp;&nbsp;&nbsp;= Server.MapPath("./")'设置站点根目录路径</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '可选参数,默认是 $</li>
+            <li>&nbsp; &nbsp; 'tpl.setTagHead&nbsp; &nbsp;&nbsp; &nbsp;= "cms:"'自定义头标签，不能为空，数字+字母或字符 例如:$、@、tpl: 等自定义的</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '可选参数,默认是 /templates/ 目录</li>
+            <li>&nbsp; &nbsp; tpl.setTemplatePath = "./templates/" '模板存放路径</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '=====================================下面是模板页面设置</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '可选参数,设置缓存,默认是不开启缓存</li>
+            <li>&nbsp; &nbsp; tpl.setCache&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;= "cachename,3,10"'缓存名称,缓存方式,缓存时间(默认是秒)</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '必选参数：页面参数,设置指定一个模板的文件位置</li>
+            <li>&nbsp; &nbsp; tpl.setTemplateFile = "index.html" '模板文件</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; '=====================================下面是模板赋值</li>
+            <li>&nbsp; &nbsp; </li>
+            <li>&nbsp; &nbsp; tpl.d("title") = "这里是标题"</li>
+            <li>&nbsp; &nbsp; tpl.d("content") = "这里是内容"</li>
+            <li>&nbsp; &nbsp; tpl.d("tags") = "其他标签"</li>
+            <li>&nbsp; &nbsp; </li><li>&nbsp; &nbsp; '显示模板</li>
+            <li>&nbsp; &nbsp; tpl.display</li>
+            <li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; </li>
+            <li>Set Tpl = Nothing</li>
+        </ol>
+    </div>
+</div>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td> 假设模板如下：</td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_LlJ"><ol><li>&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"&gt;</li><li>&lt;html xmlns="http://www.w3.org/1999/xhtml"&gt;</li><li>&lt;head&gt;</li><li>&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" /&gt;</li><li>&lt;title&gt;{$title}&lt;/title&gt;</li><li>&lt;/head&gt;</li><li></li><li>&lt;body&gt;</li><li>内容：{$content}</li><li>标签：{$tags}</li><li>&lt;/body&gt;</li><li>&lt;/html&gt;</li></ol></div>
+</div>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td> 运行后，结果的源代码如下： </td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_HEG"><ol><li>&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"&gt;</li><li>&lt;html xmlns="http://www.w3.org/1999/xhtml"&gt;</li><li>&lt;head&gt;</li><li>&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" /&gt;</li><li>&lt;title&gt;这里是标题&lt;/title&gt;</li><li>&lt;/head&gt;</li><li></li><li>&lt;body&gt;</li><li>内容：这里是内容</li><li>标签：其他标签</li><li>&lt;/body&gt;</li><li>&lt;/html&gt;</li></ol></div>
+</div>
+</div>
+</body>
+</html>
