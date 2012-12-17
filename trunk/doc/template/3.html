@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Taihom ASP Template (4.0)使用说明</title>
+<style type="text/css">
+<!--
+body {
+	font-family: Tahoma,'Microsoft Yahei','Simsun';
+	font-size: 12px;
+}
+div { display:block; }
+#main { margin:0 auto; width:90%;}
+.table_title, .t_table { font-size:14px;}
+.table_title td { padding:5px;}
+.t_table { border: 1px solid #E3EDF5; }
+.t_table td {
+	padding: 4px;
+	border: 1px solid #E3EDF5;
+	overflow: hidden;
+}
+
+ol {
+	display: block;
+	list-style-type: decimal;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	-webkit-padding-start: 40px;
+}
+li {
+	display: list-item;
+	text-align: -webkit-match-parent;
+	margin-left: 2em;
+}
+.blockcode {
+	color:#666;
+	padding: 10px 0px 5px 10px;
+	border:1px solid #CCC;
+	background: #F7F7F7 url(codebg.gif) repeat-y 0 0;
+	overflow:hidden;
+}
+.blockcode ol {
+	margin: 0 0 0 10px !important;
+	padding: 0 !important;
+}
+.blockcode ol li {
+	padding-left: 10px;
+	list-style-type: decimal-leading-zero;
+	font-family: Monaco,Consolas,'Lucida Console','Courier New',serif;
+	font-size: 12px;
+	line-height: 1.8em;
+}
+.blockcode em {
+	font-style:normal;
+	margin-left: 43px;
+	color: #369 !important;
+	font-size: 12px;
+	cursor: pointer;
+}
+-->
+</style>
+</head>
+
+<body>
+<div id="main">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" class="table_title">
+  <tr>
+    <td><strong>标签属性</strong></td>
+  </tr>
+  <tr>
+    <td> 模板当中有时候需要自己设置一些属性，以便方便从模板传递参数给后台或者其他应用，所以，支持模板的标签属性还是很有必要的。        <br /></td>
+  </tr>
+  <tr>
+    <td>默认属性(保留属性) </td>
+  </tr>
+</table>
+<table cellspacing="0" class="t_table">
+  <tbody><tr><td width="90">属性</td><td width="220">功能</td><td>说明</td></tr><tr><td colspan="3"><strong>普通标签属性</strong></td></tr><tr><td>len="数字"</td><td>截取字符</td><td>例如：{tpl:title len="5"} 这样将会截取@title前面5个字符作为输出</td></tr><tr><td>return="len"</td><td>返回字符串长度</td><td>例如：{tpl:content return="len"} 将返回这个变量的字符串长度</td></tr><tr><td>return="clearhtml"</td><td>清除HTML格式</td><td>例如：{tpl:content return="clearhtml"} 这样将会清除@content输出的HTML格式</td></tr><tr><td>return="clearspace"</td><td>清除所有空格换行</td><td>例如：{tpl:content return="clearspace"} 这样将会清除@content输出的所有的空格和换行<br>
+</td></tr><tr><td>return="clearformat"</td><td>清除所有的格式</td><td>这样只会保留文字，连HTML格式，换行什么都没有了</td></tr><tr><td>return="urlencode"</td><td>返回字符串的server.urlencode</td><td>{tpl:content return="urlencode"} 将返回与ASP中server.urlencode("字符串")一致的结果</td></tr><tr><td>dateformat="日期显示方式"</td><td>日期显示方式转换</td><td>年(yyyy|yy)月(mm|m)日(dd|d) 时(HH|H)分(MM|M)秒(SS|S)星期(w|W)<br>
+默认支持的方式有 <br>
+&nbsp; &nbsp; dateformat="0"&nbsp;&nbsp;显示日期和/或时间。如果有日期部分，则将该部分显示为短日期格式。如果有时间部分，则将该部分显示为长时间格式。如果都存在，则显示所有部分<br>
+&nbsp; &nbsp; dateformat="1"&nbsp;&nbsp;使用计算机区域设置中指定的长日期格式显示日期<br>
+&nbsp; &nbsp; dateformat="2"&nbsp;&nbsp;使用计算机区域设置中指定的短日期格式显示日期<br>
+&nbsp; &nbsp; dateformat="3" 使用计算机区域设置中指定的时间格式显示时间<br>
+&nbsp; &nbsp; dateformat="4"&nbsp;&nbsp;使用 24 小时格式 (hh:mm) 显示时间 <br>
+ 其他的日期格式化方式，可以参照下面的例子：<br>
+&nbsp; &nbsp; 例如：{tpl:datetime dateformat="yyyy-mm-dd"} 将会输出类似&nbsp;&nbsp;2009-03-01这样的时间格式<br>
+&nbsp; &nbsp; 例如：{tpl:datetime dateformat="yy年mm月dd日- 星期w"} 将会输出类似 09年03月01日&nbsp;&nbsp;- 星期？ 这样的时间格式<br>
+</td></tr><tr><td colspan="3"><strong>块标签属性</strong></td></tr><tr><td>conn="数据库连接对象"</td><td>给当前模板块设置一个数据库连接的对象</td><td>可以不设置，默认是使用模板类定义的数据库连接对象</td></tr><tr><td>sql="SQL查询语句"</td><td>给当前模板块设置一个SQL查询语句</td><td>可以不设置，但是在循环的时候，如果需要给这个循环块指定一个可以返回SQL查询语句的函数，后面将会做出详细说明</td></tr><tr><td>dr="自定义函数名(参数名)"</td><td>数据重定义功能</td><td>4.0新特性，下面会特别介绍</td></tr></tbody></table>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td>普通标签属性使用示例： </td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_ba6"><ol><li>例1：</li><li>模板标签：{$title len="5"} </li><li>赋值：d("title") = "我是模板类的示例标题"</li><li>输出：我是模板类</li><li></li><li>例2：</li><li>模板标签：{$title return="removehtml"}</li><li>赋值：d("title") = "&lt;p&gt;我是模板类的示例标题&lt;/p&gt;"</li><li>输出：我是模板类的示例标题</li><li></li><li>模板标签：{$title return="removehtml" len="5"}</li><li>赋值：d("title") = "&lt;p&gt;我是模板类的示例标题&lt;/p&gt;"</li><li>输出：我是模板类</li><li></li><li>模板：{tpl:datetime dateformat="yyyy年mm月dd日 - 星期w"} </li><li>赋值：d("datetime")=now()</li><li>结果：2011年01月18日 - 星期一</li></ol></div><em onclick="copycode($('code_ba6'));">复制代码</em></div>
+</div>
+</body>
+</html>

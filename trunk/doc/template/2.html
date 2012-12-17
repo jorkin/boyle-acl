@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Taihom ASP Template (4.0)使用说明</title>
+<style type="text/css">
+<!--
+body {
+	font-family: Tahoma,'Microsoft Yahei','Simsun';
+	font-size: 12px;
+}
+div { display:block; }
+#main { margin:0 auto; width:90%;}
+.table_title, .t_table { font-size:14px;}
+.table_title td { padding:5px;}
+.t_table { border: 1px solid #E3EDF5; }
+.t_table td {
+	padding: 4px;
+	border: 1px solid #E3EDF5;
+	overflow: hidden;
+}
+
+ol {
+	display: block;
+	list-style-type: decimal;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	-webkit-padding-start: 40px;
+}
+li {
+	display: list-item;
+	text-align: -webkit-match-parent;
+	margin-left: 2em;
+}
+.blockcode {
+	color:#666;
+	padding: 10px 0px 5px 10px;
+	border:1px solid #CCC;
+	background: #F7F7F7 url(codebg.gif) repeat-y 0 0;
+	overflow:hidden;
+}
+.blockcode ol {
+	margin: 0 0 0 10px !important;
+	padding: 0 !important;
+}
+.blockcode ol li {
+	padding-left: 10px;
+	list-style-type: decimal-leading-zero;
+	font-family: Monaco,Consolas,'Lucida Console','Courier New',serif;
+	font-size: 12px;
+	line-height: 1.8em;
+}
+.blockcode em {
+	font-style:normal;
+	margin-left: 43px;
+	color: #369 !important;
+	font-size: 12px;
+	cursor: pointer;
+}
+-->
+</style>
+</head>
+
+<body>
+<div id="main">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" class="table_title">
+  <tr>
+    <td><strong>块标签</strong></td>
+  </tr>
+</table>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td> 有开始+结束标签把模板代码包含起来，并且可以组成标签对的模板标签就是块标签，块标签是可以进行嵌套的。 <br />
+    <strong>块标签主要是用作数据块显示输出和数据循环输出</strong><br /></td>
+  </tr>
+  <tr>
+    <td> 块标签使用示例： </td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_5V5"><ol><li></li><li>假设块标签模板是：</li><li>&lt;ul&gt;</li><li>&lt;!--{$block sql="Select title,keywords,content,hits,datatime From [news] Where typeid = 3"}--&gt;</li><li>&lt;li&gt;{block.i}、{block.title len="5"} {block.datatime dateformat="yyyy年mm月dd日 - 星期w"}&lt;/li&gt;</li><li>&lt;!--{/$block}--&gt;</li><li>&lt;/ul&gt;</li><li></li><li>说明：</li><li>蓝色部分就是块标签组成的块模板内容，其中HTML的注释符号&lt;!----&gt;是可以缺省的，不过在代码进行设计的时候为了页面的可视化美观，建议加上。</li><li>红色部分就是块模板的标签名，标签名可根据自己需要自定义</li><li>块标签中如果需要引用块内容，在块模板里面需要用{块标签名.块字段名}来输出</li><li>块标签引用的标签，支持普通标签的输出属性 例如 len,dataformat等</li><li>其中{block.i}是获取循环序列，从1开始</li></ol></div><em onclick="copycode($('code_5V5'));">复制代码</em></div>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td> 如何给块标签赋值： </td>
+  </tr>
+</table>
+<div class="blockcode" data-find="_2"><div id="code_n1V" data-find="_1"><ol><li>假设已经实例化了模板类到tpl</li><li></li><li>1、方法一：构造SQL传值,模板引擎自动执行SQL赋值</li><li>1) 直接传SQL值</li><li>如果您的模板里面已经指定了正确的sql，那么你只要给模板类设置正确的数据库连接，</li><li>tpl.conn = 你的数据库连接conn</li><li>这样模板会自动执行sql并且把数据按照模板显示出来。</li><li></li><li>2) 用函数构造SQL值</li><li>当然你也可以不需要直接在模板中写SQL语句，你还可以这样： {$news sql="returnSql(tag,attr)"...}</li><li>用sql这个属性调用一个returnSQL函数，这个函数要返回你自己定义的正确SQL：</li><li></li><li>下面是这个函数的一个实例：</li><li>'根据属性返回正确的SQL语句，主要作用是根据循环标签的名称和属性构造完整的SQL</li><li>'returnSql(参数1,参数2)</li><li></li><li>Function returnSql(labelName,attr)</li><li>'传参 说明</li><li>'labelName 标签名，你可以根据不同的标签名，根据标签的自定义属性来返回正确的SQL</li><li>'attr 标签的属性，字典对象：名=值</li><li>Dim sql</li><li>&nbsp; &nbsp; Select Case Lcase(labelName)</li><li>&nbsp; &nbsp; Case "class"'</li><li>&nbsp; &nbsp; Dim id</li><li>&nbsp; &nbsp; id = attr("borderid")</li><li>&nbsp; &nbsp; sql = "Select * From [class] Where typeid = " &amp; id</li><li>&nbsp; &nbsp; Case Else</li><li>&nbsp; &nbsp; labelName = sql</li><li>&nbsp; &nbsp; End Select</li><li>returnSql = sql</li><li>End Function</li><li>2、方法二：直接RS、数组、字典赋值</li><li>这里的赋值方式跟普通标签的赋值方式一致，可支持RS、一维数组、二维数组、字典赋值</li><li>1) RS赋值</li><li>例：</li><li>&nbsp; &nbsp; Dim rs</li><li>&nbsp; &nbsp; Set rs = dbo.execute("Select borderid,typeid,bordername From [Class] Where borderid = 2")</li><li>&nbsp; &nbsp; tpl.d("class") = rs</li><li>&nbsp; &nbsp; </li><li>&nbsp; &nbsp; '如果你需要改变字段值，也可以这样</li><li>&nbsp; &nbsp; tpl.d("class") = Array(rs,"bid,tid,bname")</li><li></li><li>2) 一维数组</li><li>例：</li><li>&nbsp; &nbsp; Dim ary(3)</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;ary(0) = 1</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;ary(1) = 2</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;ary(2) = "一维数组数据"</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;</li><li>&nbsp; &nbsp; tpl.d("class") = Array(ary,"borderid,typeid,bordername")</li><li></li><li>3) 二维数组</li><li>例：</li><li>&nbsp; &nbsp; &nbsp; &nbsp; Dim ary1(1,3)</li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ary1(0,0) = 1</li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ary1(0,1) = 2</li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ary1(0,2) = "二维数组数据1"</li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; </li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ary1(1,0) = 2</li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ary1(1,1) = 3</li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ary1(1,2) = "二维数组数据2"</li><li></li><li>&nbsp; &nbsp; &nbsp; &nbsp; tpl.d("data[name=nnn]") = Array(ary1,"borderid,typeid,bordername")</li><li></li><li>大家请注意，这里的块赋值 tpl.d("data[name=nnn]") 红色部分，</li><li>这个跟 tpl.d("data")&nbsp;&nbsp;有什么不一样？</li><li></li><li>下面我让大家认识一下4.0的新特性，定位赋值：</li><li>4.0开始支持同名的块名称，例如模板里面有标签：</li><li>&lt;ul&gt;</li><li>{$news classid="1" num="5"}</li><li>&lt;li&gt;{news.i}、{news.title len="10"} {news.datatime}&lt;/li&gt;</li><li>{/$news}</li><li>&lt;/ul&gt;</li><li></li><li>&lt;ul&gt;</li><li>{$news classid="2" num="5"}</li><li>&lt;li&gt;{news.i}、{news.title len="10"} {news.datatime}&lt;/li&gt;</li><li>{/$news}</li><li>&lt;/ul&gt;</li><li></li><li>如果用方法一，构造SQL的形式，那需要构造returnSQL的函数例子</li><li></li><li>Function returnSql(labelName,attr)</li><li>'传参 说明</li><li>'labelName 标签名，你可以根据不同的标签名，根据标签的自定义属性来返回正确的SQL</li><li>'attr 标签的属性，字典对象：名=值</li><li>Dim sql</li><li>&nbsp; &nbsp; Select Case Lcase(labelName)</li><li>&nbsp; &nbsp; Case "news"'</li><li>&nbsp; &nbsp; Dim classid,num</li><li>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; classid = attr("classid")</li><li>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;num = attr("num")</li><li>&nbsp; &nbsp; sql = "Select top "&amp; num &amp;" * From [class] Where classid = " &amp; classid </li><li>&nbsp; &nbsp; ......</li><li>&nbsp; &nbsp; End Select</li><li>returnSql = sql</li><li>End Function</li><li></li><li>当然我们也可以直接给他们赋值：</li><li>由于我们需要定位一个块，定位标签是 name，所以我们需要给模板一个name属性，例如：</li><li>&lt;ul&gt;</li><li>{$news classid="1" num="5" name="name1"}</li><li>&lt;li&gt;{news.i}、{news.title len="10"} {news.datatime}&lt;/li&gt;</li><li>{/$news}</li><li>&lt;/ul&gt;</li><li></li><li>&lt;ul&gt;</li><li>{$news classid="2" num="5" name="name2"}</li><li>&lt;li&gt;{news.i}、{news.title len="10"} {news.datatime}&lt;/li&gt;</li><li>{/$news}</li><li>&lt;/ul&gt;</li><li></li><li>用直接赋值的方法可以这样：</li><li>tpl.d("news[name=name1]") = RS1 '假设你已经构造好了数据集</li><li>tpl.d("news[name=name2]") = RS2 '假设你已经构造好了数据集</li><li></li><li>如果是嵌套循环那应该怎么样赋值呢？</li><li>tpl.d("class1/news[name=name1]") = 数据1&nbsp;&nbsp;'给class1块下面的news并且name是name1的块赋值</li><li>tpl.d("class2/news[name=name1]") = 数据2&nbsp;&nbsp;'给class2块下面的news并且name是name2的块赋值</li><li></li><li>块空值:如果是因为数据是空值，那可以这样：</li><li>&lt;ul&gt;</li><li>{$news classid="2" num="5" name="name2"}</li><li>{empty:news}</li><li>&lt;li&gt;没有数据！&lt;/li&gt;</li><li>{/empty:news}</li><li>&lt;li&gt;{news.i}、{news.title len="10"} {news.datatime}&lt;/li&gt;</li><li>{/$news}</li><li>&lt;/ul&gt;</li><li></li><li>可以用</li><li>{empty:标签名}</li><li>为空时候显示的内容数据.</li><li>{、empty:标签名}</li><li>作为空值模板</li><li></li><li></li><li>也许你会提一个奇怪的问题，如果</li><li>tpl.d("block") = 字符串或者数字，那么块模板会显示什么呢？</li><li>O(∩_∩)O哈哈~ 其实你可以试试，直接的告诉你答案是 会当作普通标签一样，直接把 你给的值显示出来</li><li></li></ol></div><em onclick="copycode($('code_n1V'));">复制代码</em></div>
+<table width="100%" border="0" cellspacing="0" class="table_title">
+  <tr>
+    <td> 如何自定义输出的字段？ </td>
+  </tr>
+</table>
+<div class="blockcode"><div id="code_iOH"><ol><li></li><li>请给循环块一个dr属性，例如</li><li>{$block ....dr="myclassdata(rs)"}</li><li></li><li></li><li>'自定义字段数据输出</li><li>Function myclassdata(rs)</li><li>'在这个函数里你可以重新定义你的字段数据，就像下面</li><li>rs("bordername") = "&lt;span style=""color:red;""&gt;"&amp;rs("bordername")&amp;"&lt;/span&gt;"</li><li></li><li>'还可以加入你自己定义的名称</li><li>rs("taihom") = "我的字段赋值"</li><li></li><li>'最后用SET 方法把数据返回就可以了</li><li>Set myclassdata = rs</li><li>End Function</li><li></li><li></li><li>红色部分的函数是可以自己定义的，名称也可以自己起，但是需要传入一个参数，参数名自己定义</li><li>传入的参数包含了当前块的数据，函数后面要记得返回值是用SET 返回，因为这个参数是一个字典对象</li></ol></div><em onclick="copycode($('code_iOH'));">复制代码</em></div>
+</div>
+</body>
+</html>
