@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>{$title}</title>
+<link href="../public/common.css" rel="stylesheet" type="text/css" media="all" />
+</head>
+
+<body>
+<div id="wrap">
+	<div id="top">&nbsp;</div>
+	<div id="contnet">
+	  <table width="90%" border="0" cellpadding="0" cellspacing="0" class="mainborder">
+        <tr>
+          <td width="8" class="transborder">&nbsp;</td>
+          <td class="transborder">&nbsp;</td>
+          <td width="8" class="transborder">&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="transborder">&nbsp;</td>
+          <td class="maintd">
+          	<div class="mainarea">
+            	<div class="maintd_bottom"></div>
+                <div class="c_header a_header">
+                	<a href="#"><img src="../public/untitled.gif" alt="Boyle7" class="avatar" /></a>
+               	  <h1>数据维护</h1>
+                    <a href="#" class="spacelink">配件资料录入</a>
+                </div>
+       	  <div class="tabs_header">
+                	<ul class="tabs">
+                    	<li class="active"><a href="?tab=parts">配件信息</a></li>
+                        <li class="noactive"><a href="?tab=personnel">人事档案</a></li>
+                        <li class="noactive"><a href="?tab=customer">客户信息</a></li>
+                        <li class="noactive"><a href="?tab=other">其他</a></li>
+                    </ul>
+                </div>
+                <div class="h_status"><a href="?tab=parts&amp;optional=1" class="active">配件资料查询</a><span class="pipe">|</span><a href="?tab=parts&amp;optional=2" class="normal">配件资料录入</a><span class="pipe">|</span><a href="?tab=parts&amp;optional=3" class="normal">仓库名称定义</a><span class="pipe">|</span><a href="?tab=parts&amp;optional=4" class="normal">配件产地定义</a><span class="pipe">|</span><a href="?tab=parts&amp;optional=5" class="normal">配件类别定义</a><span class="pipe">|</span><a href="?tab=parts&amp;optional=6" class="normal">计量单位定义</a><span class="pipe">|</span><a href="?tab=parts&amp;optional=7" class="normal">配件关键字定义</a><span class="pipe">|</span><a href="?tab=parts&amp;optional=8" class="normal">配件快速查询设置</a></div>
+                <div class="box">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr class="table_header">
+                        <td width="12%"><h3>配件编码</h3></td>
+                        <td width="18%"><h3>配件名称</h3></td>
+                        <td width="6%"><h3>库存量</h3></td>
+                        <td width="5%"><h3>单位</h3></td>
+                        <td width="8%"><h3>销售价格</h3></td>
+                        <td width="8%"><h3>品牌</h3></td>
+                        <td width="14%"><h3>适用车型</h3></td>
+                        <td width="12%"><h3>规格</h3></td>
+                        <td width="10%"><h3>产地</h3></td>
+                        <td><h3>仓位</h3></td>
+                      </tr>
+                      <!-- {$vo} -->
+                      <!-- {empty:vo} -->
+                      <tr>
+                        <td colspan="10"><h4>数据库中没有相关数据！</h4></td>
+                      </tr>
+                      <!-- {/empty:vo} -->
+                      <tr>
+                        <td><h4>{vo.sn}</h4></td>
+                        <td><h4>{vo.name}</h4></td>
+                        <td><h4>{vo.stocks}</h4></td>
+                        <td><h4>{vo.unit}</h4></td>
+                        <td><h4>{vo.price}</h4></td>
+                        <td><h4>{vo.brand}</h4></td>
+                        <td><h4>{vo.car}</h4></td>
+                        <td><h4>{vo.size}</h4></td>
+                        <td><h4>{vo.locality}</h4></td>
+                        <td><h4>{vo.warehouse}</h4></td>
+                      </tr>
+                      <!-- {/$vo} -->
+                    </table>{$pager}</div>
+              <div class="f_status f_status_w s_clear"><a href="javascript:;" onclick="window.scrollTo(0,0);" id="a_top" title="TOP">TOP</a></div>
+            </div>
+          </td>
+          <td class="transborder">&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="transborder">&nbsp;</td>
+          <td class="transborder">&nbsp;</td>
+          <td class="transborder">&nbsp;</td>
+        </tr>
+      </table>
+	</div>
+    <div id="bottom">&nbsp;</div>
+</div>
+</body>
+</html>

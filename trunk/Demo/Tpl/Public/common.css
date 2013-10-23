@@ -1,0 +1,144 @@
+/* CSS DOCUMENT - COMMON */
+
+/* 层样式文件 */		
+	
+	/** UCENTER HOME STYLE **/
+	
+	/** GLOBAL **/
+	* { word-break:break-all; word-wrap:break-word; }
+		body, th, td, input, select, textarea, button { font:12px/1.5em Tahoma, Arial, Helvetica, sans-serif; }
+		body, h1, h2, h3, h4, h5, h6, p, ul, dt, dd, form, fieldset { margin:0px; padding:0px; }
+		h1, h2, h3, h4, h5, h6 { font-size:1em; }
+		ul li { list-style:none; }
+		a { color:#06C; text-decoration:none; }
+			a:hover { text-decoration:underline; }
+			a img { border:none; }
+			.blocklink a { display:block; padding-left:0.5em; line-height:2em; }
+				.blocklink a:hover { background:#2782D6; color:#FFF; text-decoration:none; }
+				.blocklink .active a { color:#333; font-weight:bold; }
+				
+		caption, th { text-align:left; }
+			caption { font-size:14px; font-weight:bold; }
+				caption p { font-weight:normal; }
+				
+		/** LAYOUT & BLOCK **/
+		body { background:#FFF url(../public/background.gif) scroll; color:#333; text-align:center; }
+			#wrap { margin:0px 10px; text-align:left; }
+			
+			#content { padding:10px 0px; text-align:center; }
+				.mainborder { margin:0 auto; }
+					.transborder { background-color:#000; overflow:hidden; opacity:0.15; filter:alpha(opacity=15); font-size:8px; line-height:8px; }
+						/*/ .transborder { background: transparent; } /**/
+					.maintd { border: 1px solid #999; }
+
+				.maintd_bottom { border-bottom: 1px solid #CCC; }
+				.mainarea { margin:0 auto; width:100%; background-color:#FFF; text-align:left; }
+				.r_content, .l_content { padding: 10px 15px; }
+				.b_content { border-top:1px solid #CCC; }
+				.avatar { border:1px solid #ccc; }
+
+				/** TABS **/
+				.tabs_header { position:relative; width:100%; height:24px; border-bottom:1px solid #888; }
+					.light_tabs { border-bottom-color:#CCC; }
+				.tabs { position:absolute; left:10px; }
+					.tabs li { float:left; margin-right:5px; border:1px solid #888; }
+						.tabs a { float:left; padding:0px 10px; height:22px; border-top:1px solid #B5B5B5; border-left:1px solid #B5B5B5; background:#999; color:#FFF; line-height:22px; }
+					.tabs li.active { border-bottom-color:#FFF; }
+						.tabs li.active a { border-color:#F0F0F0; background-color:#FFF; color:#333; }
+					.icon_tabs li a { padding-left:27px; position:relative; }
+					.tabs img { position:absolute; left:8px; top:3px; }
+					.light_tabs .tabs { left:0; }
+					.light_tabs li { border-color:#CCC; }
+						.light_tabs a { border-top-color:#FFF; border-left-color:#FFF; background-color:#EEE; color:#333;}
+						.light_tabs li.active { border-bottom-color:#FFF !important; }
+						.light_tabs li.active a { border-color:#FFF !important; background-color:#FFF !important; }
+				/** HEADER **/
+				
+					.c_header { padding: 0 1em; height: 36px; border-bottom: 1px solid #DDD; background: #F7F7F7; position: relative; }
+						.c_header h1 { font-size: 1.17em; color: #333; line-height: 40px; }
+						.c_header .r_option { margin-top: 9px; }
+					.a_header { margin-bottom: 40px; }
+						.a_header * { position: absolute; }
+							.a_header .avatar { width: 48px; height: 48px; top: 10px; background: #FFF; }
+							.a_header h1, .a_header h2 { left: 70px; top: 15px; width: 560px; font-size: 1.17em; line-height: normal; }
+								.a_header h2 { left: 12px; }
+								.a_header h1 em { font-style: normal; font-weight: normal; }
+							.a_header .spacelink { left: 70px; top: 40px; white-space: nowrap; }
+								.a_header .domainurl { left: 12px !important; }
+								.a_header h2 em { font-size: 12px; font-weight: normal; font-style: normal; color: #666; }
+							.a_header .r_option, .a_header .r_option * { position: static; }
+					
+					/** STATUS **/
+					.h_status { padding: 5px 20px; border-bottom: 1px solid #CCC; }
+						.h_status a.active { text-decoration:none; color:#333; }
+						.h_status a.normal {}
+						.h_status h1 { padding-top: 1em; font-size: 1.17em; }
+						.status_form { float: right; margin-top: -15px; width: 225px; position: relative; z-index: 9999; }
+					.status { padding: 0.5em; border-top: 1px solid #ECF1F3; color: #999; }
+						#a_showSide { float: right; width: 230px; }
+							#a_showSide.openside { text-align: right; }
+					.f_status { clear: both; padding: 10px; border-top: 1px solid #B0B0B0; background: #FFF; }
+						#a_top, #a_share, #a_rss { float: right; margin-left: 4px; display: inline; padding: 0 18px 0 5px; width: 50px; w\idth: 25px; height: 15px; border: 1px solid #7F93BC; background: #FFF no-repeat right top; line-height: 15px; overflow: hidden; }
+							#a_top { background-image: url(../public/top.gif); }
+							#a_share { background-image: url(../public/share.gif); }
+							#a_rss { border-color: #E0862D; background-image: url(../public/rss.gif); color: #E0862D; }
+								#a_top:hover, #a_share:hover, #a_rss:hover { background-color: #576EA5; background-position: 100% -20px; text-decoration: none; color: #FFF; }
+									#a_rss:hover { background-color: #F1AD3E; }
+						.f_status_w { background: #FFF; }
+						
+					.box { margin:1em; }
+						.box_action { position: relative; height: 1.8em; border-top: 1px solid #DDD; background: #F5F5F5; color: #666; line-height: 1.8em; text-indent: 0.8em; }
+							.box_action .action { position: absolute; top: 0; right: 0.8em; }
+						.box_action .r_option { padding-right: 0.8em; }
+						.box h3 { padding:0px 8px; border-top: 1px solid #2782D6; background: #C9DFF4; font-size: 1em; line-height: 2em; }
+						.box h4 { padding:0px 8px; border:none; background:#FFF; font-size:1em; line-height:2em; font-weight:normal; }
+						.box_content { padding: 0.8em 0 0; }
+					
+					/** CONTENT **/
+					.r_content {}
+						.r_content table { padding:3px; }
+					
+					/** TABLE LIST **/
+					/**
+					.box .table_header { padding:0px 8px; border-top:1px solid #2782D6; background-color:#C9DFF4; font-size:1em; line-height:2em; }
+					**/
+						
+	/** BOTTOM **/
+	/** #bottom { margin:10px auto; padding-bottom:10px; width:100%; text-align:right; font-size:11px; } **/
+						
+	/** KITS **/
+	.pipe { padding: 0 0.4em; color: #DDD; }
+	.gray { color: #999; font-weight: normal; }
+	.time { margin-left: 9px; color: #999; font-size: 12px; }
+		.stat .time { margin-left: 0; }
+	
+	/** CLEAR FLOAT SELF **/
+	.s_clear:after, .a_list ul li:after, .image_left li:after, .image_right li:after, .post_list ul li:after { content: "."; display: block; height: 0; clear: both; visibility: hidden; }
+	.s_clear, .a_list li, .image_left li, .image_right li, .post_list li { zoom: 1; }
+	
+	/** FORM **/
+	textarea { border-style: solid; border-width: 1px; border-color: #7C7C7C #C3C3C3 #DDD; overflow: auto; }
+	.t_input { padding: 3px 2px; border-style: solid; border-width: 1px; border-color: #7C7C7C #C3C3C3 #DDD; line-height: 16px; }
+	.button { padding: 0 2px; height: 22px; border: 1px solid; border-color: #EEE #999 #999 #EEE; background: #DDD; color: #333; line-height: 20px; cursor: pointer; margin-left:2px; }
+	.submit { padding: 0 10px; height: 22px; border: 1px solid; border-color: #DDD #264F6E #264F6E #DDD; background: #2782D6; color: #FFF; line-height: 20px; letter-spacing: 1px; cursor: pointer; }
+	.radio, .checkbox {  }
+	.c_form { padding: 1em 5em; }
+	
+	/** OLD PAGE **/
+	/**
+	#page { padding:5px; margin-top:4px; font-size:11px; text-align:center; }
+	#page span { padding:2px 4px; background-color:#D6E3EF; border:1px solid #386792; }
+	#page a:link, #page a:visited, #page a:active { color:#666666; padding:2px 4px; background-color:#EFEFEF; border:1px solid #386792; }
+	#page a:hover { color:#666666; padding:2px 4px; text-decoration:none; background-color:#EDF2F8; border:1px solid #386792; }	
+	**/
+	
+/*分页默认样式*/
+.pager { margin-top:10px; margin-bottom:10px; padding:3px; text-align:left; color:#66C; }
+/*分页链接样式*/
+.pager a { font-size:12px; margin:2px; padding:2px 5px; color:#009; text-decoration:none; border:1px solid #aad; }
+/*分页链接鼠标移过的样式*/  
+.pager a:hover, .pager a:active { color:#000; border:1px solid #009; }
+/*当前页码的样式*/  
+.pager span.current { font-weight:bold; margin:0 2px; padding:2px 5px; color:#fff; background-color:#009; border:1px solid #009; }
+/*不可用分页链接的样式(比如第1页时的"上一页"链接)*/  
+.pager span.disabled { margin:0 2px; padding:2px 5px; color:#ddd; border:1px solid #eee; }
